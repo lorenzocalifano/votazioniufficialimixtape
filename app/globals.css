@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+html,
+body {
+  background-color: #050508;
+  color: #f4f4f8;
+}
+
+/* Sfondo "esplosione di luce" ispirato alla copertina: burst bianco centrale
+   + scie neon ciano/magenta/verde acido che sfumano verso i bordi scuri. */
+.bg-burst {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.25) 8%, transparent 22%),
+    radial-gradient(ellipse at 20% 70%, rgba(62, 232, 255, 0.25) 0%, transparent 45%),
+    radial-gradient(ellipse at 80% 25%, rgba(255, 62, 200, 0.22) 0%, transparent 45%),
+    radial-gradient(ellipse at 75% 80%, rgba(166, 255, 62, 0.18) 0%, transparent 45%),
+    #050508;
+}
+
+.neon-card {
+  background: rgba(13, 13, 20, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+  border-radius: 1rem;
+}
+
+.glow-text {
+  text-shadow: 0 0 18px rgba(62, 232, 255, 0.55), 0 0 40px rgba(255, 62, 200, 0.25);
+}
+
+.btn-glow {
+  background: linear-gradient(90deg, #3ee8ff, #ff3ec8);
+  color: #050508;
+  font-weight: 700;
+  transition: filter 0.2s ease, transform 0.15s ease;
+}
+.btn-glow:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+.btn-glow:active {
+  transform: translateY(0);
+}
+.btn-glow:disabled {
+  filter: grayscale(0.6) brightness(0.7);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.input-dark {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f4f4f8;
+}
+.input-dark:focus {
+  outline: none;
+  border-color: #3ee8ff;
+  box-shadow: 0 0 0 3px rgba(62, 232, 255, 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
