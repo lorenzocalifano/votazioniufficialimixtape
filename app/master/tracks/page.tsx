@@ -59,9 +59,9 @@ export default function TracksListPage() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Titolo nuova traccia"
-          className="input-dark flex-1 rounded-lg px-4 py-2"
+          className="input-dark flex-1 rounded-2xl px-4 py-2"
         />
-        <button type="submit" disabled={creating} className="btn-glow rounded-lg px-5 py-2">
+        <button type="submit" disabled={creating} className="btn-glow rounded-2xl px-5 py-2">
           + Aggiungi
         </button>
       </form>

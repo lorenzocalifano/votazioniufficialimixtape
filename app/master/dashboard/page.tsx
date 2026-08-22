@@ -218,7 +218,7 @@ export default function MasterDashboardPage() {
           onPlay={onAudioPlay}
           onPause={onAudioPause}
           onSeeked={onAudioSeeked}
-          className={`w-full rounded-lg accent-cyan ${currentTrackId ? "" : "hidden"}`}
+          className={`w-full rounded-2xl accent-cyan ${currentTrackId ? "" : "hidden"}`}
         />
         {currentTrackId && audioMissing && (
           <p className="text-sm text-gold">
@@ -230,7 +230,7 @@ export default function MasterDashboardPage() {
           <select
             value={selectedTrackId}
             onChange={(e) => setSelectedTrackId(e.target.value)}
-            className="input-dark rounded-lg px-3 py-2"
+            className="input-dark rounded-2xl px-3 py-2"
           >
             <option value="">Scegli traccia…</option>
             {snapshot.tracks.map((t) => (
@@ -239,13 +239,13 @@ export default function MasterDashboardPage() {
               </option>
             ))}
           </select>
-          <button onClick={onPlay} disabled={!selectedTrackId} className="btn-glow rounded-lg px-5 py-2">
+          <button onClick={onPlay} disabled={!selectedTrackId} className="btn-glow rounded-2xl px-5 py-2">
             ▶ Avvia
           </button>
           <button
             onClick={onAdvanceNow}
             disabled={!snapshot.state?.current_track_id}
-            className="neon-card rounded-lg px-5 py-2 text-white/80"
+            className="neon-card rounded-2xl px-5 py-2 text-white/80"
           >
             Avanza ora
           </button>
@@ -323,9 +323,9 @@ export default function MasterDashboardPage() {
             max={200}
             value={newCodesCount}
             onChange={(e) => setNewCodesCount(parseInt(e.target.value) || 0)}
-            className="input-dark w-24 rounded-lg px-3 py-2"
+            className="input-dark w-24 rounded-2xl px-3 py-2"
           />
-          <button onClick={onGenerateCodes} className="btn-glow rounded-lg px-5 py-2">
+          <button onClick={onGenerateCodes} className="btn-glow rounded-2xl px-5 py-2">
             Genera codici iniziali
           </button>
         </div>
@@ -334,7 +334,7 @@ export default function MasterDashboardPage() {
             <p className="mb-1 text-sm text-white/50">Disponibili da distribuire ({codes.available.length}):</p>
             <div className="flex flex-wrap gap-2">
               {codes.available.map((c) => (
-                <span key={c.id} className="glow-text rounded-md border border-white/10 px-3 py-1 font-mono font-bold">
+                <span key={c.id} className="glow-text rounded-xl border border-white/10 px-3 py-1 font-mono font-bold">
                   {c.code}
                 </span>
               ))}
@@ -346,7 +346,7 @@ export default function MasterDashboardPage() {
             <p className="mb-1 text-sm text-white/50">In attesa di rientro:</p>
             <div className="flex flex-wrap gap-2">
               {codes.pending.map((c) => (
-                <span key={c.id} className="rounded-md border border-magenta/40 px-3 py-1 font-mono">
+                <span key={c.id} className="rounded-xl border border-magenta/40 px-3 py-1 font-mono">
                   {c.code} <span className="text-white/40">({c.judgeNickname ?? "?"})</span>
                 </span>
               ))}
@@ -358,10 +358,10 @@ export default function MasterDashboardPage() {
       <section className="neon-card space-y-3 p-6">
         <h2 className="font-display text-lg font-bold">Export dati (per analisi IA)</h2>
         <div className="flex gap-3">
-          <button onClick={onExportJson} className="neon-card rounded-lg px-5 py-2 text-white/80">
+          <button onClick={onExportJson} className="neon-card rounded-2xl px-5 py-2 text-white/80">
             Esporta JSON completo
           </button>
-          <button onClick={onExportCsv} className="neon-card rounded-lg px-5 py-2 text-white/80">
+          <button onClick={onExportCsv} className="neon-card rounded-2xl px-5 py-2 text-white/80">
             Esporta voti (CSV)
           </button>
         </div>

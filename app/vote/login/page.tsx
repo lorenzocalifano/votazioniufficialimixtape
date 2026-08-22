@@ -27,6 +27,9 @@ export default function VoteLoginPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6">
+      <div className="cover-backdrop" aria-hidden="true">
+        <img src="/cover.jpg" alt="" />
+      </div>
       <form onSubmit={onSubmit} className="enter neon-card w-full max-w-sm space-y-5 p-8">
         <h1 className="glow-text font-display text-center text-2xl font-bold">Entra nella votazione</h1>
         <p className="text-center text-sm text-white/60">
@@ -43,7 +46,7 @@ export default function VoteLoginPage() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="ES. 7K4PXR"
-            className="input-dark w-full rounded-lg px-4 py-3 text-center text-lg uppercase tracking-widest"
+            className="input-dark w-full rounded-2xl px-4 py-3 text-center text-lg uppercase tracking-widest"
             maxLength={8}
           />
         </div>
@@ -57,13 +60,13 @@ export default function VoteLoginPage() {
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             placeholder="Es. Marco"
-            className="input-dark w-full rounded-lg px-4 py-3"
+            className="input-dark w-full rounded-2xl px-4 py-3"
           />
         </div>
 
         {error && <p className="text-center text-sm text-magenta">{error}</p>}
 
-        <button type="submit" disabled={isPending} className="btn-glow w-full rounded-lg py-3 text-lg">
+        <button type="submit" disabled={isPending} className="btn-glow w-full rounded-2xl py-3 text-lg">
           {isPending ? "Verifica in corso…" : "Entra"}
         </button>
       </form>

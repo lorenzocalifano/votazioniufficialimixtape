@@ -240,7 +240,7 @@ export default function VoteSessionPage() {
               <button
                 type="button"
                 onClick={() => setWouldRelisten(true)}
-                className={`flex-1 rounded-lg py-2 font-semibold ${
+                className={`flex-1 rounded-2xl py-2 font-semibold ${
                   wouldRelisten === true ? "btn-glow" : "neon-card text-white/70"
                 }`}
               >
@@ -249,7 +249,7 @@ export default function VoteSessionPage() {
               <button
                 type="button"
                 onClick={() => setWouldRelisten(false)}
-                className={`flex-1 rounded-lg py-2 font-semibold ${
+                className={`flex-1 rounded-2xl py-2 font-semibold ${
                   wouldRelisten === false ? "bg-magenta text-void" : "neon-card text-white/70"
                 }`}
               >
@@ -283,7 +283,7 @@ export default function VoteSessionPage() {
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Consigli, correzioni al testo, feedback libero…"
-              className="input-dark w-full rounded-lg px-4 py-3"
+              className="input-dark w-full rounded-2xl px-4 py-3"
             />
           </div>
 
@@ -292,7 +292,7 @@ export default function VoteSessionPage() {
           <button
             type="submit"
             disabled={submitting || wouldRelisten === null}
-            className="btn-glow w-full rounded-lg py-3 text-lg"
+            className="btn-glow w-full rounded-2xl py-3 text-lg"
           >
             {submitting ? "Invio…" : "Invia voto"}
           </button>

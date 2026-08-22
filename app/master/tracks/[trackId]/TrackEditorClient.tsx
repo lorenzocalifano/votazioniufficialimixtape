@@ -11,7 +11,8 @@ import {
   deleteSection,
   saveLyricsLines,
 } from "@/actions/tracks";
-import { uploadTrackAudio, getTrackAudioUrl, deleteTrackAudio } from "@/actions/audio";
+import { createAudioUploadTicket, getTrackAudioUrl, deleteTrackAudio } from "@/actions/audio";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 type Detail = Awaited<ReturnType<typeof getTrackDetail>>;
 
@@ -61,14 +62,32 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    if (!file.type.startsWith("audio/")) {
+      setError("Il file deve essere un audio (mp3).");
+      return;
+    }
     setError(null);
     setUploading(true);
-    const formData = new FormData();
-    formData.set("trackId", trackId);
-    formData.set("file", file);
-    const result = await uploadTrackAudio(formData);
+
+    // Il file va DIRETTAMENTE dal browser a Supabase Storage con un URL
+    // firmato: passando dal nostro server verrebbe bloccato dal limite di
+    // ~4.5MB per richiesta imposto da Vercel sulle funzioni serverless.
+    const ticket = await createAudioUploadTicket(trackId);
+    if (ticket.error || !ticket.path || !ticket.token) {
+      setUploading(false);
+      setError(ticket.error ?? "Errore nella preparazione del caricamento.");
+      return;
+    }
+
+    const { error } = await supabaseBrowser()
+      .storage.from("track-audio")
+      .uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: file.type });
+
     setUploading(false);
-    if (result.error) return setError(result.error);
+    if (error) {
+      setError("Errore nel caricamento dell'audio: " + error.message);
+      return;
+    }
     refresh();
   }
 
@@ -157,8 +176,8 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
       {error && <p className="text-center text-sm text-magenta">{error}</p>}
 
       <section className="neon-card flex gap-3 p-6">
-        <input value={title} onChange={(e) => setTitle(e.target.value)} className="input-dark flex-1 rounded-lg px-4 py-2" />
-        <button onClick={onSaveTitle} className="btn-glow rounded-lg px-5 py-2">
+        <input value={title} onChange={(e) => setTitle(e.target.value)} className="input-dark flex-1 rounded-2xl px-4 py-2" />
+        <button onClick={onSaveTitle} className="btn-glow rounded-2xl px-5 py-2">
           Salva titolo
         </button>
       </section>
@@ -169,9 +188,9 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
           Il file resta privato: si riproduce solo dal pannello Master (sulle casse dello studio), mai sui telefoni
           degli ascoltatori.
         </p>
-        <audio ref={audioRef} src={audioUrl ?? undefined} controls className="w-full rounded-lg accent-cyan" />
+        <audio ref={audioRef} src={audioUrl ?? undefined} controls className="w-full rounded-2xl accent-cyan" />
         <div className="flex items-center gap-3">
-          <label className="btn-glow cursor-pointer rounded-lg px-5 py-2">
+          <label className="btn-glow cursor-pointer rounded-2xl px-5 py-2">
             {uploading ? "Caricamento…" : audioUrl ? "Sostituisci mp3" : "Carica mp3"}
             <input type="file" accept="audio/*" onChange={onUploadAudio} disabled={uploading} className="hidden" />
           </label>
@@ -198,7 +217,7 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
           ))}
         </ul>
         <form onSubmit={onAddCredit} className="flex gap-2">
-          <select value={creditRole} onChange={(e) => setCreditRole(e.target.value as any)} className="input-dark rounded-lg px-3 py-2">
+          <select value={creditRole} onChange={(e) => setCreditRole(e.target.value as any)} className="input-dark rounded-2xl px-3 py-2">
             <option value="producer">Producer</option>
             <option value="artist">Artista</option>
           </select>
@@ -206,9 +225,9 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
             value={creditName}
             onChange={(e) => setCreditName(e.target.value)}
             placeholder="Nome"
-            className="input-dark flex-1 rounded-lg px-3 py-2"
+            className="input-dark flex-1 rounded-2xl px-3 py-2"
           />
-          <button type="submit" className="btn-glow rounded-lg px-4 py-2">
+          <button type="submit" className="btn-glow rounded-2xl px-4 py-2">
             +
           </button>
         </form>
@@ -233,15 +252,15 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
             value={sectionLabel}
             onChange={(e) => setSectionLabel(e.target.value)}
             placeholder="Es. Prima strofa"
-            className="input-dark flex-1 rounded-lg px-3 py-2"
+            className="input-dark flex-1 rounded-2xl px-3 py-2"
           />
           <input
             value={sectionArtist}
             onChange={(e) => setSectionArtist(e.target.value)}
             placeholder="Artista"
-            className="input-dark flex-1 rounded-lg px-3 py-2"
+            className="input-dark flex-1 rounded-2xl px-3 py-2"
           />
-          <button type="submit" className="btn-glow rounded-lg px-4 py-2">
+          <button type="submit" className="btn-glow rounded-2xl px-4 py-2">
             +
           </button>
         </form>
@@ -261,13 +280,13 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
             value={rawLyrics}
             onChange={(e) => setRawLyrics(e.target.value)}
             rows={8}
-            className="input-dark w-full rounded-lg px-4 py-3 font-mono text-sm"
+            className="input-dark w-full rounded-2xl px-4 py-3 font-mono text-sm"
             placeholder={"Riga 1\nRiga 2\nRiga 3…"}
           />
         )}
 
         {!syncing && !syncResult && (
-          <button onClick={startSync} disabled={!audioUrl} className="btn-glow rounded-lg px-5 py-2">
+          <button onClick={startSync} disabled={!audioUrl} className="btn-glow rounded-2xl px-5 py-2">
             ▶ Inizia sincronizzazione
           </button>
         )}
@@ -278,7 +297,7 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
               Riga {syncIndex + 1} / {syncLines.length}
             </p>
             <p className="glow-text font-display text-2xl font-bold">{syncLines[syncIndex]}</p>
-            <button onClick={tapNextLine} className="btn-glow w-full rounded-lg py-6 text-xl">
+            <button onClick={tapNextLine} className="btn-glow w-full rounded-2xl py-6 text-xl">
               TOCCA per la prossima riga
             </button>
             <button onClick={cancelSync} className="text-sm text-white/40 hover:text-white/70">
@@ -299,7 +318,7 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
               ))}
             </ul>
             <div className="flex gap-3">
-              <button onClick={onSaveSyncedLyrics} className="btn-glow rounded-lg px-5 py-2">
+              <button onClick={onSaveSyncedLyrics} className="btn-glow rounded-2xl px-5 py-2">
                 Salva testo
               </button>
               <button onClick={() => setSyncResult(null)} className="text-white/40 hover:text-white/70">

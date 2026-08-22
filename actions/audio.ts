@@ -11,28 +11,22 @@ function pathFor(trackId: string) {
 }
 
 /**
- * Carica il file audio di una traccia. Il bucket è privato: l'unico modo per
- * ottenere un URL riproducibile è passare da getTrackAudioUrl (Master-only),
- * quindi il file non è mai raggiungibile dal telefono degli ascoltatori.
+ * Genera un "biglietto" di upload firmato: il browser userà questo token per
+ * caricare il file DIRETTAMENTE su Supabase Storage, senza farlo transitare
+ * dalla Server Action. Necessario perché Vercel limita a ~4.5MB il corpo
+ * delle richieste alle funzioni serverless (un mp3 intero lo supera quasi
+ * sempre) — passando dal server saremmo bloccati indipendentemente da
+ * qualunque config di Next.js.
  */
-export async function uploadTrackAudio(formData: FormData) {
+export async function createAudioUploadTicket(trackId: string) {
   await requireMaster();
-
-  const trackId = formData.get("trackId");
-  const file = formData.get("file");
-
-  if (typeof trackId !== "string" || !trackId) return { error: "Traccia non valida." };
-  if (!(file instanceof File)) return { error: "Nessun file ricevuto." };
-  if (!file.type.startsWith("audio/")) return { error: "Il file deve essere un audio (mp3)." };
+  if (!trackId) return { error: "Traccia non valida." };
 
   const db = supabaseAdmin();
-  const { error } = await db.storage.from(BUCKET).upload(pathFor(trackId), file, {
-    upsert: true,
-    contentType: file.type || "audio/mpeg",
-  });
+  const { data, error } = await db.storage.from(BUCKET).createSignedUploadUrl(pathFor(trackId), { upsert: true });
 
-  if (error) return { error: "Errore nel caricamento dell'audio." };
-  return { ok: true };
+  if (error || !data) return { error: "Errore nella preparazione del caricamento." };
+  return { ok: true, path: data.path, token: data.token };
 }
 
 export async function getTrackAudioUrl(trackId: string) {

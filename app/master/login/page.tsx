@@ -26,6 +26,9 @@ export default function MasterLoginPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6">
+      <div className="cover-backdrop" aria-hidden="true">
+        <img src="/cover.jpg" alt="" />
+      </div>
       <form onSubmit={onSubmit} className="enter neon-card w-full max-w-sm space-y-5 p-8">
         <h1 className="glow-text font-display text-center text-2xl font-bold">Pannello organizzatore</h1>
         <input
@@ -34,10 +37,10 @@ export default function MasterLoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password"
-          className="input-dark w-full rounded-lg px-4 py-3 text-center"
+          className="input-dark w-full rounded-2xl px-4 py-3 text-center"
         />
         {error && <p className="text-center text-sm text-magenta">{error}</p>}
-        <button type="submit" disabled={isPending} className="btn-glow w-full rounded-lg py-3 text-lg">
+        <button type="submit" disabled={isPending} className="btn-glow w-full rounded-2xl py-3 text-lg">
           {isPending ? "Verifica…" : "Accedi"}
         </button>
       </form>
