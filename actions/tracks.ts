@@ -28,6 +28,14 @@ export async function createTrack(title: string) {
   return { ok: true, id: data.id };
 }
 
+/** Durata dell'mp3 in secondi, letta dal browser al momento del caricamento (serve per stimare l'orario di fine). */
+export async function setTrackDuration(trackId: string, durationSeconds: number) {
+  await requireMaster();
+  const db = supabaseAdmin();
+  await db.from("tracks").update({ duration_seconds: Math.round(durationSeconds) }).eq("id", trackId);
+  return { ok: true };
+}
+
 export async function updateTrackTitle(trackId: string, title: string) {
   await requireMaster();
   if (!title.trim()) return { error: "Il titolo è obbligatorio." };

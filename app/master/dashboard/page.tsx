@@ -8,6 +8,7 @@ import { generateInitialCodes, regenerateCodeForJudge, getCodesOverview } from "
 import { getTrackAudioUrl } from "@/actions/audio";
 import { exportAllData } from "@/actions/export";
 import { logoutMaster } from "@/actions/auth";
+import { estimateEndTime, formatClock } from "@/lib/schedule";
 
 type Snapshot = Awaited<ReturnType<typeof getDashboardSnapshot>>;
 type CodesOverview = Awaited<ReturnType<typeof getCodesOverview>>;
@@ -23,6 +24,7 @@ export default function MasterDashboardPage() {
   const [regenerated, setRegenerated] = useState<Record<string, string>>({});
   const [countdown, setCountdown] = useState<number | null>(null);
   const [audioMissing, setAudioMissing] = useState(false);
+  const [now, setNow] = useState(() => new Date());
   const advancingRef = useRef(false);
   const snapshotRef = useRef<Snapshot | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -30,10 +32,25 @@ export default function MasterDashboardPage() {
 
   snapshotRef.current = snapshot;
 
+  useEffect(() => {
+    const clock = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(clock);
+  }, []);
+
   async function refresh() {
     const [s, c] = await Promise.all([getDashboardSnapshot(), getCodesOverview()]);
     setSnapshot(s);
     setCodes(c);
+
+    // Fine pausa raggiunta: passa da solo alla traccia successiva.
+    if (s.state?.phase === "break" && s.state.break_until && new Date(s.state.break_until) <= new Date()) {
+      if (!advancingRef.current) {
+        advancingRef.current = true;
+        await advanceToNextTrack();
+        const fresh = await getDashboardSnapshot();
+        setSnapshot(fresh);
+      }
+    }
   }
 
   useEffect(() => {
@@ -42,13 +59,15 @@ export default function MasterDashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Countdown automatico quando tutti gli ascoltatori attivi hanno votato.
+  // Countdown automatico quando tutti gli ascoltatori attivi hanno votato
+  // (solo per la breve transizione normale: le pause vere si gestiscono in refresh()).
   const phaseKey = `${snapshot?.state?.phase}-${snapshot?.state?.current_track_id}`;
   useEffect(() => {
     if (snapshot?.state?.phase === "all_done" && snapshot.state.current_track_id) {
       advancingRef.current = false;
       setCountdown(5);
     } else {
+      advancingRef.current = false;
       setCountdown(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,7 +170,7 @@ export default function MasterDashboardPage() {
 
   async function onExportGeneralCsv() {
     const data = await exportAllData();
-    const header = "traccia,ascoltatore,voto_generale,riascolterebbe,note\n";
+    const header = "traccia,ascoltatore,voto_generale,voto_produzione,riascolterebbe,note\n";
     const rows = data.tracks
       .flatMap((t) =>
         t.generalVotes.map((v) =>
@@ -159,6 +178,7 @@ export default function MasterDashboardPage() {
             csvEscape(t.title),
             csvEscape(v.listener),
             v.generalScore,
+            v.productionScore,
             v.wouldRelisten ? "si" : "no",
             csvEscape(v.notes ?? ""),
           ].join(",")
@@ -193,6 +213,11 @@ export default function MasterDashboardPage() {
   if (!snapshot || !codes) return <CenteredMessage title="Caricamento…" />;
 
   const currentTrack = snapshot.tracks.find((t) => t.id === snapshot.state?.current_track_id);
+  const estimatedEnd = snapshot.state && snapshot.tracks.length > 0 ? estimateEndTime(snapshot.tracks, snapshot.state) : null;
+  const breakRemainingMs =
+    snapshot.state?.phase === "break" && snapshot.state.break_until
+      ? Math.max(0, new Date(snapshot.state.break_until).getTime() - now.getTime())
+      : null;
 
   return (
     <main className="enter mx-auto max-w-4xl space-y-6 px-4 py-8">
@@ -210,6 +235,15 @@ export default function MasterDashboardPage() {
 
       <section className="neon-card space-y-4 p-6">
         <h2 className="font-display text-lg font-bold">Stato sessione</h2>
+        <div className="flex flex-wrap justify-between gap-2 text-sm text-white/50">
+          <span>Ore {formatClock(now)}</span>
+          {currentTrack && snapshot.tracks.length > 0 && (
+            <span>
+              Traccia {currentTrack.position} di {snapshot.tracks.length}
+            </span>
+          )}
+          {estimatedEnd && <span>Fine prevista {formatClock(estimatedEnd)}</span>}
+        </div>
         <p className="text-white/70">
           Fase: <span className="font-semibold text-white">{snapshot.state?.phase}</span>
           {currentTrack && (
@@ -226,6 +260,14 @@ export default function MasterDashboardPage() {
         {countdown !== null && (
           <div className="neon-card animate-pulseGlow border-acid/40 p-3 text-center text-acid">
             Tutti hanno votato! Prossima traccia tra {countdown}s
+          </div>
+        )}
+
+        {breakRemainingMs !== null && (
+          <div className="neon-card animate-pulseGlow border-gold/40 p-3 text-center text-gold">
+            In pausa — riprende alle {snapshot.state?.break_until ? formatClock(new Date(snapshot.state.break_until)) : "—"}
+            {" "}
+            (tra {Math.ceil(breakRemainingMs / 60000)} min)
           </div>
         )}
 

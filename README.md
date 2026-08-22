@@ -16,8 +16,11 @@ reali e condivisi (non una demo statica) salvati su Supabase.
   traccia direttamente dal browser e vede in tempo reale chi ha votato, la
   classifica live, ed esporta tutti i dati grezzi.
 - **Avanzamento automatico**: quando tutti gli ascoltatori attualmente online
-  hanno votato la traccia corrente, il sistema mostra un countdown e passa da
-  solo alla traccia successiva (audio compreso).
+  hanno votato la traccia corrente, il sistema passa da solo alla traccia
+  successiva (audio compreso). Ogni 3 tracce concede automaticamente una pausa
+  di 5 minuti, e una pausa più lunga di 15 minuti dopo la decima; durante
+  l'attesa (pause comprese) tutti vedono una schermata con ora attuale,
+  avanzamento nella scaletta e orario di fine stimato.
 
 ## Stack
 
@@ -38,6 +41,8 @@ Costo totale: **€0/mese** nei limiti dei piani gratuiti (ampiamente sufficient
 2. Apri **SQL Editor** nel progetto ed esegui, **in ordine**, il contenuto di:
    - [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) — tabelle, Realtime su `session_state`, Row Level Security.
    - [`supabase/migrations/0002_audio_playback.sql`](supabase/migrations/0002_audio_playback.sql) — stato di pausa/ripresa e bucket privato `track-audio` per gli mp3.
+   - [`supabase/migrations/0003_breaks_and_schedule.sql`](supabase/migrations/0003_breaks_and_schedule.sql) — durata tracce e pause programmate.
+   - [`supabase/migrations/0004_production_score.sql`](supabase/migrations/0004_production_score.sql) — voto separato alla produzione/beat.
 3. Vai in **Project Settings → API** e recupera:
    - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
    - `anon` / `publishable` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -94,18 +99,23 @@ Apri [http://localhost:3000](http://localhost:3000).
 - Il player audio nella dashboard ha i controlli nativi del browser
   (play/pausa/scorrimento/volume): usali pure per gestire la riproduzione, lo
   stato si sincronizza da solo con i telefoni degli ascoltatori.
-- Quando tutti gli ascoltatori online hanno votato, parte in automatico il
-  countdown e si passa alla traccia successiva, audio compreso (puoi anche
-  forzare con **Avanza ora**).
+- Ogni ascoltatore vota con il pulsante **Vota**, che chiede sempre conferma
+  (Sì/No) prima di registrare il voto — così non capita di inviarlo per
+  sbaglio mentre si sta ancora regolando uno slider.
+- Quando tutti gli ascoltatori online hanno votato, si passa alla traccia
+  successiva, audio compreso (puoi anche forzare con **Avanza ora**). Ogni 3
+  tracce scatta in automatico una pausa di 5 minuti (15 dopo la decima): la
+  dashboard mostra il countdown ed **avanza da sola** a fine pausa.
 - Se un ascoltatore si disconnette, il suo vecchio codice non è più valido:
   nella sezione **Ascoltatori** della dashboard premi **Rigenera codice**
   accanto al suo nome e comunicagli il nuovo codice per rientrare (riprende
   dalla traccia corrente, non da dove si era fermato).
 - A fine serata, dalla dashboard puoi esportare i dati per un'analisi successiva
   (anche con un'IA esterna): **JSON completo** (tracce con crediti, sezioni e
-  relativi voti individuali, voti generali e media di severità per
-  ascoltatore, già incrociati), **CSV voti generali** e **CSV voti per
-  sezione** (un rigo per ogni voto a strofa/ritornello/artista).
+  relativi voti individuali, voti generali (incluso il voto separato alla
+  produzione/beat) e media di severità per ascoltatore, già incrociati),
+  **CSV voti generali** e **CSV voti per sezione** (un rigo per ogni voto a
+  strofa/ritornello/artista).
 
 ## Protezione anti voto-multiplo — limiti onesti
 

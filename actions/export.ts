@@ -65,10 +65,12 @@ export async function exportAllData() {
       generalVotes: trackVotes.map((v) => ({
         listener: listenerName(v.judge_id),
         generalScore: Number(v.general_score),
+        productionScore: Number(v.production_score),
         wouldRelisten: v.would_relisten,
         notes: v.notes,
       })),
       generalAverage: avg(trackVotes.map((v) => Number(v.general_score))),
+      productionAverage: avg(trackVotes.map((v) => Number(v.production_score))),
       generalVotesCount: trackVotes.length,
       relistenYesCount: trackVotes.filter((v) => v.would_relisten).length,
       relistenNoCount: trackVotes.filter((v) => !v.would_relisten).length,

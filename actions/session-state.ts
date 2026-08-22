@@ -2,6 +2,7 @@
 
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { requireMaster } from "@/lib/auth-helpers";
+import { breakMinutesAfterPosition } from "@/lib/schedule";
 
 // Un ascoltatore è considerato "online" se ha mandato un heartbeat negli
 // ultimi 45s (heartbeat ogni ~15s dal client: tollera un po' di jitter di rete).
@@ -19,8 +20,11 @@ async function getActiveJudgeIds(db: ReturnType<typeof supabaseAdmin>): Promise<
 
 /**
  * Dopo ogni voto: se tutti gli ascoltatori attualmente online hanno votato la
- * traccia corrente, porta la fase a "all_done" (i client mostreranno il countdown).
- * L'update è condizionato su phase='voting' così scatta una volta sola.
+ * traccia corrente, la fase avanza. Se questa traccia è un punto di pausa
+ * programmato (ogni 3 tracce, pausa più lunga dopo la decima) la fase diventa
+ * "break" con un orario di fine pausa; altrimenti "all_done" per la breve
+ * transizione automatica. L'update è condizionato su phase='voting' così
+ * scatta una volta sola.
  */
 export async function checkAndMaybeFinishVoting(trackId: string) {
   const db = supabaseAdmin();
@@ -33,14 +37,17 @@ export async function checkAndMaybeFinishVoting(trackId: string) {
     .eq("track_id", trackId)
     .in("judge_id", activeIds);
 
-  if ((count ?? 0) >= activeIds.length) {
-    await db
-      .from("session_state")
-      .update({ phase: "all_done", updated_at: new Date().toISOString() })
-      .eq("id", 1)
-      .eq("current_track_id", trackId)
-      .eq("phase", "voting");
-  }
+  if ((count ?? 0) < activeIds.length) return;
+
+  const { data: track } = await db.from("tracks").select("position").eq("id", trackId).single();
+  const breakMinutes = track ? breakMinutesAfterPosition(track.position) : 0;
+  const now = new Date();
+
+  const update = breakMinutes
+    ? { phase: "break", break_until: new Date(now.getTime() + breakMinutes * 60_000).toISOString(), updated_at: now.toISOString() }
+    : { phase: "all_done", updated_at: now.toISOString() };
+
+  await db.from("session_state").update(update).eq("id", 1).eq("current_track_id", trackId).eq("phase", "voting");
 }
 
 /**
@@ -62,6 +69,7 @@ export async function playTrack(trackId: string) {
       track_started_at: now,
       is_paused: false,
       paused_position_seconds: null,
+      break_until: null,
       updated_at: now,
     })
     .eq("id", 1);
@@ -142,6 +150,7 @@ export async function advanceToNextTrack() {
         track_started_at: now,
         is_paused: false,
         paused_position_seconds: null,
+        break_until: null,
         updated_at: now,
       })
       .eq("id", 1);
@@ -154,6 +163,7 @@ export async function advanceToNextTrack() {
         track_started_at: null,
         is_paused: false,
         paused_position_seconds: null,
+        break_until: null,
         updated_at: now,
       })
       .eq("id", 1);
@@ -168,7 +178,7 @@ export async function getDashboardSnapshot() {
 
   const [{ data: state }, { data: tracks }, { data: judges }] = await Promise.all([
     db.from("session_state").select("*").eq("id", 1).single(),
-    db.from("tracks").select("id, position, title").order("position", { ascending: true }),
+    db.from("tracks").select("id, position, title, duration_seconds").order("position", { ascending: true }),
     db.from("judges").select("id, nickname, last_seen_at").order("created_at", { ascending: true }),
   ]);
 

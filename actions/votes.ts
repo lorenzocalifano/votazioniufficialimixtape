@@ -9,6 +9,7 @@ export type SectionScoreInput = { sectionId: string; score: number };
 export async function submitVote(input: {
   trackId: string;
   generalScore: number;
+  productionScore: number;
   wouldRelisten: boolean;
   notes: string;
   sectionScores: SectionScoreInput[];
@@ -18,6 +19,9 @@ export async function submitVote(input: {
 
   if (input.generalScore < 1 || input.generalScore > 10) {
     return { error: "Il voto generale deve essere tra 1 e 10." };
+  }
+  if (input.productionScore < 1 || input.productionScore > 10) {
+    return { error: "Il voto alla produzione deve essere tra 1 e 10." };
   }
 
   const { data: existing } = await db
@@ -33,6 +37,7 @@ export async function submitVote(input: {
     judge_id: judgeId,
     track_id: input.trackId,
     general_score: input.generalScore,
+    production_score: input.productionScore,
     would_relisten: input.wouldRelisten,
     notes: input.notes.trim() || null,
   });

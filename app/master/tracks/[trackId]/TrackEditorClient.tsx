@@ -10,6 +10,7 @@ import {
   addSection,
   deleteSection,
   saveLyricsLines,
+  setTrackDuration,
 } from "@/actions/tracks";
 import { createAudioUploadTicket, getTrackAudioUrl, deleteTrackAudio } from "@/actions/audio";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -188,7 +189,16 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
           Il file resta privato: si riproduce solo dal pannello Master (sulle casse dello studio), mai sui telefoni
           degli ascoltatori.
         </p>
-        <audio ref={audioRef} src={audioUrl ?? undefined} controls className="w-full rounded-2xl accent-cyan" />
+        <audio
+          ref={audioRef}
+          src={audioUrl ?? undefined}
+          controls
+          onLoadedMetadata={(e) => {
+            const duration = e.currentTarget.duration;
+            if (Number.isFinite(duration)) setTrackDuration(trackId, duration);
+          }}
+          className="w-full rounded-2xl accent-cyan"
+        />
         <div className="flex items-center gap-3">
           <label className="btn-glow cursor-pointer rounded-2xl px-5 py-2">
             {uploading ? "Caricamento…" : audioUrl ? "Sostituisci mp3" : "Carica mp3"}

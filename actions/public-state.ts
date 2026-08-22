@@ -7,10 +7,17 @@ export async function getSessionState() {
   const db = supabaseAdmin();
   const { data } = await db
     .from("session_state")
-    .select("current_track_id, phase, track_started_at")
+    .select("current_track_id, phase, track_started_at, is_paused, paused_position_seconds, break_until")
     .eq("id", 1)
     .single();
   return data;
+}
+
+/** Elenco tracce (posizione + durata) per calcolare la stima di fine serata. */
+export async function getScheduleTracks() {
+  const db = supabaseAdmin();
+  const { data } = await db.from("tracks").select("id, position, duration_seconds").order("position");
+  return data ?? [];
 }
 
 export async function getTrackForJudge(trackId: string) {
