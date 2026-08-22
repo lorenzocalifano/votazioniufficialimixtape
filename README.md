@@ -101,8 +101,11 @@ Apri [http://localhost:3000](http://localhost:3000).
   nella sezione **Ascoltatori** della dashboard premi **Rigenera codice**
   accanto al suo nome e comunicagli il nuovo codice per rientrare (riprende
   dalla traccia corrente, non da dove si era fermato).
-- A fine serata, dalla dashboard puoi esportare **JSON completo** o **CSV voti**
-  per un'analisi successiva (anche con un'IA esterna).
+- A fine serata, dalla dashboard puoi esportare i dati per un'analisi successiva
+  (anche con un'IA esterna): **JSON completo** (tracce con crediti, sezioni e
+  relativi voti individuali, voti generali e media di severità per
+  ascoltatore, già incrociati), **CSV voti generali** e **CSV voti per
+  sezione** (un rigo per ogni voto a strofa/ritornello/artista).
 
 ## Protezione anti voto-multiplo — limiti onesti
 

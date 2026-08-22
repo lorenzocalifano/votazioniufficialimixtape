@@ -50,38 +50,38 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.55;
-  filter: blur(6px) saturate(120%);
+  opacity: 0.75;
+  filter: blur(2px) saturate(115%);
   animation: coverDrift 50s ease-in-out infinite;
 }
 .cover-backdrop::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(120% 90% at 50% 40%, transparent 0%, rgba(7, 6, 13, 0.55) 55%, rgba(7, 6, 13, 0.92) 100%);
+  background: radial-gradient(120% 90% at 50% 40%, transparent 0%, rgba(7, 6, 13, 0.4) 55%, rgba(7, 6, 13, 0.85) 100%);
 }
 
 /* ===== Vetro liquido =====
    Superficie traslucida con evidenziatura speculare in alto a sinistra (come
-   se la luce colpisse il vetro dall'alto) e un sottile bordo luminoso: il
-   colore dello sfondo animato si rifrange attraverso il blur. */
+   se la luce colpisse il vetro dall'alto) e un bordo luminoso a doppio tono:
+   la copertina sfocata dietro si rifrange attraverso il blur pesante. */
 .neon-card {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03) 45%, rgba(255, 255, 255, 0.07));
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02) 45%, rgba(255, 255, 255, 0.09));
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
   border-radius: 1.75rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35), inset 0 0 60px rgba(255, 255, 255, 0.03);
 }
 .neon-card::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: radial-gradient(130% 60% at 15% -10%, rgba(255, 255, 255, 0.3), transparent 60%);
+  background: radial-gradient(130% 60% at 15% -10%, rgba(255, 255, 255, 0.35), transparent 60%);
   pointer-events: none;
 }
 
@@ -89,13 +89,20 @@ body {
   text-shadow: 0 0 18px rgba(45, 226, 230, 0.55), 0 0 40px rgba(255, 62, 165, 0.25);
 }
 
+/* Il bottone primario è vetro liquido a sua volta: tinta neon traslucida
+   invece di un riempimento pieno, con lo stesso blur/evidenziatura delle
+   card, ma più luminoso perché resta il richiamo visivo principale. */
 .btn-glow {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 40%), linear-gradient(90deg, #2de2e6, #ff3ea5);
-  color: #07060d;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.05) 45%),
+    linear-gradient(100deg, rgba(45, 226, 230, 0.65), rgba(255, 62, 165, 0.65));
+  backdrop-filter: blur(20px) saturate(200%);
+  -webkit-backdrop-filter: blur(20px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #ffffff;
   font-weight: 700;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 30px rgba(45, 226, 230, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.65);
   transition: filter 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 .btn-glow::before {
@@ -109,9 +116,9 @@ body {
   transition: opacity 0.2s ease;
 }
 .btn-glow:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.12);
   transform: translateY(-1px);
-  box-shadow: 0 0 24px rgba(45, 226, 230, 0.35), 0 0 40px rgba(255, 62, 165, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 24px rgba(45, 226, 230, 0.45), 0 0 44px rgba(255, 62, 165, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 .btn-glow:hover::before {
   opacity: 1;
@@ -128,9 +135,10 @@ body {
 }
 
 .input-dark {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(16px);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   color: #f4f4f8;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }

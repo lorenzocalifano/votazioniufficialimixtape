@@ -149,23 +149,40 @@ export default function MasterDashboardPage() {
     downloadFile(`mixtape-export-${Date.now()}.json`, JSON.stringify(data, null, 2), "application/json");
   }
 
-  async function onExportCsv() {
+  async function onExportGeneralCsv() {
     const data = await exportAllData();
-    const trackTitleById = new Map(data.tracks.map((t: any) => [t.id, t.title]));
-    const listenerNameById = new Map(data.judges.map((j: any) => [j.id, j.nickname ?? j.id.slice(0, 8)]));
     const header = "traccia,ascoltatore,voto_generale,riascolterebbe,note\n";
-    const rows = data.votes
-      .map((v: any) =>
-        [
-          csvEscape(trackTitleById.get(v.track_id) ?? v.track_id),
-          csvEscape(listenerNameById.get(v.judge_id) ?? v.judge_id),
-          v.general_score,
-          v.would_relisten ? "si" : "no",
-          csvEscape(v.notes ?? ""),
-        ].join(",")
+    const rows = data.tracks
+      .flatMap((t) =>
+        t.generalVotes.map((v) =>
+          [
+            csvEscape(t.title),
+            csvEscape(v.listener),
+            v.generalScore,
+            v.wouldRelisten ? "si" : "no",
+            csvEscape(v.notes ?? ""),
+          ].join(",")
+        )
       )
       .join("\n");
-    downloadFile(`mixtape-voti-${Date.now()}.csv`, header + rows, "text/csv");
+    downloadFile(`mixtape-voti-generali-${Date.now()}.csv`, header + rows, "text/csv");
+  }
+
+  async function onExportSectionsCsv() {
+    const data = await exportAllData();
+    const header = "traccia,sezione,artista_sezione,ascoltatore,voto\n";
+    const rows = data.tracks
+      .flatMap((t) =>
+        t.sections.flatMap((s) =>
+          s.votes.map((v) =>
+            [csvEscape(t.title), csvEscape(s.label), csvEscape(s.artistName), csvEscape(v.listener), v.score].join(
+              ","
+            )
+          )
+        )
+      )
+      .join("\n");
+    downloadFile(`mixtape-voti-sezioni-${Date.now()}.csv`, header + rows, "text/csv");
   }
 
   async function onLogout() {
@@ -357,12 +374,15 @@ export default function MasterDashboardPage() {
 
       <section className="neon-card space-y-3 p-6">
         <h2 className="font-display text-lg font-bold">Export dati (per analisi IA)</h2>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button onClick={onExportJson} className="neon-card rounded-2xl px-5 py-2 text-white/80">
             Esporta JSON completo
           </button>
-          <button onClick={onExportCsv} className="neon-card rounded-2xl px-5 py-2 text-white/80">
-            Esporta voti (CSV)
+          <button onClick={onExportGeneralCsv} className="neon-card rounded-2xl px-5 py-2 text-white/80">
+            Esporta voti generali (CSV)
+          </button>
+          <button onClick={onExportSectionsCsv} className="neon-card rounded-2xl px-5 py-2 text-white/80">
+            Esporta voti per sezione (CSV)
           </button>
         </div>
       </section>

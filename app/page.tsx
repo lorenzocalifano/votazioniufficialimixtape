@@ -7,7 +7,7 @@ export default function HomePage() {
         <h1 className="glow-text font-display text-4xl font-bold tracking-tight sm:text-6xl">MIXTAPE VOTING</h1>
         <p className="max-w-md text-white/70">Votazioni live per selezionare la tracklist definitiva.</p>
         <div className="flex flex-col gap-4 sm:flex-row">
-          <Link href="/vote/login" className="btn-glow rounded-full px-8 py-3 text-center text-lg shadow-glow">
+          <Link href="/vote/login" className="btn-glow rounded-full px-8 py-3 text-center text-lg">
             Sono un ascoltatore
           </Link>
           <Link
