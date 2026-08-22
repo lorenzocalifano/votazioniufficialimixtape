@@ -10,6 +10,7 @@ export default function TracksListPage() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [title, setTitle] = useState("");
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function refresh() {
     setTracks(await listTracks());
@@ -23,15 +24,24 @@ export default function TracksListPage() {
     e.preventDefault();
     if (!title.trim()) return;
     setCreating(true);
-    await createTrack(title);
-    setTitle("");
+    setError(null);
+    const result = await createTrack(title);
     setCreating(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setTitle("");
     refresh();
   }
 
   async function onDelete(id: string) {
     if (!confirm("Eliminare questa traccia e tutti i suoi dati (crediti, sezioni, testo, voti)?")) return;
-    await deleteTrack(id);
+    const result = await deleteTrack(id);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
     refresh();
   }
 
@@ -55,6 +65,8 @@ export default function TracksListPage() {
           + Aggiungi
         </button>
       </form>
+
+      {error && <p className="text-center text-sm text-magenta">{error}</p>}
 
       <ul className="space-y-2">
         {tracks.map((t) => (

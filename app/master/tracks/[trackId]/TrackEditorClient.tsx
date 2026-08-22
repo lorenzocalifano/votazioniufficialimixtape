@@ -17,6 +17,7 @@ type Detail = Awaited<ReturnType<typeof getTrackDetail>>;
 export default function TrackEditorClient({ trackId }: { trackId: string }) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [title, setTitle] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const [creditRole, setCreditRole] = useState<"producer" | "artist">("producer");
   const [creditName, setCreditName] = useState("");
@@ -45,14 +46,18 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
   }, [trackId]);
 
   async function onSaveTitle() {
-    await updateTrackTitle(trackId, title);
+    setError(null);
+    const result = await updateTrackTitle(trackId, title);
+    if (result.error) return setError(result.error);
     refresh();
   }
 
   async function onAddCredit(e: React.FormEvent) {
     e.preventDefault();
     if (!creditName.trim()) return;
-    await addCredit(trackId, creditRole, creditName);
+    setError(null);
+    const result = await addCredit(trackId, creditRole, creditName);
+    if (result.error) return setError(result.error);
     setCreditName("");
     refresh();
   }
@@ -60,7 +65,9 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
   async function onAddSection(e: React.FormEvent) {
     e.preventDefault();
     if (!sectionLabel.trim() || !sectionArtist.trim()) return;
-    await addSection(trackId, sectionLabel, sectionArtist);
+    setError(null);
+    const result = await addSection(trackId, sectionLabel, sectionArtist);
+    if (result.error) return setError(result.error);
     setSectionLabel("");
     setSectionArtist("");
     refresh();
@@ -98,7 +105,9 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
 
   async function onSaveSyncedLyrics() {
     if (!syncResult) return;
-    await saveLyricsLines(trackId, syncResult);
+    setError(null);
+    const result = await saveLyricsLines(trackId, syncResult);
+    if (result.error) return setError(result.error);
     setSyncResult(null);
     refresh();
   }
@@ -113,6 +122,8 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
           ← Roster
         </Link>
       </header>
+
+      {error && <p className="text-center text-sm text-magenta">{error}</p>}
 
       <section className="neon-card flex gap-3 p-6">
         <input value={title} onChange={(e) => setTitle(e.target.value)} className="input-dark flex-1 rounded-lg px-4 py-2" />

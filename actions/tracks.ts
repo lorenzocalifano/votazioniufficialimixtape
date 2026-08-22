@@ -32,14 +32,16 @@ export async function updateTrackTitle(trackId: string, title: string) {
   await requireMaster();
   if (!title.trim()) return { error: "Il titolo è obbligatorio." };
   const db = supabaseAdmin();
-  await db.from("tracks").update({ title: title.trim() }).eq("id", trackId);
+  const { error } = await db.from("tracks").update({ title: title.trim() }).eq("id", trackId);
+  if (error) return { error: "Errore nel salvataggio del titolo." };
   return { ok: true };
 }
 
 export async function deleteTrack(trackId: string) {
   await requireMaster();
   const db = supabaseAdmin();
-  await db.from("tracks").delete().eq("id", trackId);
+  const { error } = await db.from("tracks").delete().eq("id", trackId);
+  if (error) return { error: "Errore nell'eliminazione della traccia." };
   return { ok: true };
 }
 
@@ -67,14 +69,18 @@ export async function addCredit(trackId: string, role: "producer" | "artist", na
     .select("id", { count: "exact", head: true })
     .eq("track_id", trackId);
 
-  await db.from("track_credits").insert({ track_id: trackId, role, name: name.trim(), position: count ?? 0 });
+  const { error } = await db
+    .from("track_credits")
+    .insert({ track_id: trackId, role, name: name.trim(), position: count ?? 0 });
+  if (error) return { error: "Errore nel salvataggio del credito." };
   return { ok: true };
 }
 
 export async function deleteCredit(creditId: string) {
   await requireMaster();
   const db = supabaseAdmin();
-  await db.from("track_credits").delete().eq("id", creditId);
+  const { error } = await db.from("track_credits").delete().eq("id", creditId);
+  if (error) return { error: "Errore nella rimozione del credito." };
   return { ok: true };
 }
 
@@ -88,19 +94,21 @@ export async function addSection(trackId: string, label: string, artistName: str
     .select("id", { count: "exact", head: true })
     .eq("track_id", trackId);
 
-  await db.from("track_sections").insert({
+  const { error } = await db.from("track_sections").insert({
     track_id: trackId,
     label: label.trim(),
     artist_name: artistName.trim(),
     position: count ?? 0,
   });
+  if (error) return { error: "Errore nel salvataggio della sezione." };
   return { ok: true };
 }
 
 export async function deleteSection(sectionId: string) {
   await requireMaster();
   const db = supabaseAdmin();
-  await db.from("track_sections").delete().eq("id", sectionId);
+  const { error } = await db.from("track_sections").delete().eq("id", sectionId);
+  if (error) return { error: "Errore nella rimozione della sezione." };
   return { ok: true };
 }
 
