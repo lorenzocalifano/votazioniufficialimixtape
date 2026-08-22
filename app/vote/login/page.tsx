@@ -27,8 +27,8 @@ export default function VoteLoginPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6">
-      <form onSubmit={onSubmit} className="neon-card w-full max-w-sm space-y-5 p-8">
-        <h1 className="glow-text text-center text-2xl font-bold">Entra nella votazione</h1>
+      <form onSubmit={onSubmit} className="enter neon-card w-full max-w-sm space-y-5 p-8">
+        <h1 className="glow-text font-display text-center text-2xl font-bold">Entra nella votazione</h1>
         <p className="text-center text-sm text-white/60">
           Inserisci il codice che ti è stato comunicato stasera.
         </p>

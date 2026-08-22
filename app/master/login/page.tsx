@@ -26,8 +26,8 @@ export default function MasterLoginPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6">
-      <form onSubmit={onSubmit} className="neon-card w-full max-w-sm space-y-5 p-8">
-        <h1 className="glow-text text-center text-2xl font-bold">Pannello organizzatore</h1>
+      <form onSubmit={onSubmit} className="enter neon-card w-full max-w-sm space-y-5 p-8">
+        <h1 className="glow-text font-display text-center text-2xl font-bold">Pannello organizzatore</h1>
         <input
           type="password"
           autoFocus

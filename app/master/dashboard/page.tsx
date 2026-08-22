@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getDashboardSnapshot, playTrack, advanceToNextTrack } from "@/actions/session-state";
+import { getDashboardSnapshot, playTrack, advanceToNextTrack, pausePlayback, resumePlayback } from "@/actions/session-state";
 import { generateInitialCodes, regenerateCodeForJudge, getCodesOverview } from "@/actions/codes";
+import { getTrackAudioUrl } from "@/actions/audio";
 import { exportAllData } from "@/actions/export";
 import { logoutMaster } from "@/actions/auth";
 
@@ -21,7 +22,13 @@ export default function MasterDashboardPage() {
   const [newCodesCount, setNewCodesCount] = useState(45);
   const [regenerated, setRegenerated] = useState<Record<string, string>>({});
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [audioMissing, setAudioMissing] = useState(false);
   const advancingRef = useRef(false);
+  const snapshotRef = useRef<Snapshot | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const loadedTrackIdRef = useRef<string | null>(null);
+
+  snapshotRef.current = snapshot;
 
   async function refresh() {
     const [s, c] = await Promise.all([getDashboardSnapshot(), getCodesOverview()]);
@@ -35,7 +42,7 @@ export default function MasterDashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Countdown automatico quando tutti i giurati attivi hanno votato.
+  // Countdown automatico quando tutti gli ascoltatori attivi hanno votato.
   const phaseKey = `${snapshot?.state?.phase}-${snapshot?.state?.current_track_id}`;
   useEffect(() => {
     if (snapshot?.state?.phase === "all_done" && snapshot.state.current_track_id) {
@@ -60,8 +67,49 @@ export default function MasterDashboardPage() {
     return () => clearTimeout(t);
   }, [countdown]);
 
+  // Carica e riproduce l'mp3 della traccia corrente: reagisce sia a un avvio
+  // manuale sia all'avanzamento automatico, e riallinea la posizione se la
+  // dashboard viene ricaricata a metà brano (o mentre è in pausa).
+  const currentTrackId = snapshot?.state?.current_track_id ?? null;
+  useEffect(() => {
+    if (!currentTrackId) {
+      loadedTrackIdRef.current = null;
+      setAudioMissing(false);
+      return;
+    }
+    if (loadedTrackIdRef.current === currentTrackId) return;
+    loadedTrackIdRef.current = currentTrackId;
+
+    (async () => {
+      const { url } = await getTrackAudioUrl(currentTrackId);
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      if (!url) {
+        setAudioMissing(true);
+        audio.removeAttribute("src");
+        return;
+      }
+      setAudioMissing(false);
+      audio.src = url;
+
+      const state = snapshotRef.current?.state;
+      const elapsed = state?.track_started_at ? (Date.now() - new Date(state.track_started_at).getTime()) / 1000 : 0;
+      audio.currentTime = state?.is_paused ? state.paused_position_seconds ?? 0 : Math.max(0, elapsed);
+
+      if (!state?.is_paused) {
+        try {
+          await audio.play();
+        } catch {
+          // Autoplay bloccato dal browser: l'organizzatore avvia manualmente coi controlli nativi.
+        }
+      }
+    })();
+  }, [currentTrackId]);
+
   async function onPlay() {
     if (!selectedTrackId) return;
+    loadedTrackIdRef.current = null; // forza ricarica/riavvio anche se è la stessa traccia
     await playTrack(selectedTrackId);
     refresh();
   }
@@ -70,6 +118,19 @@ export default function MasterDashboardPage() {
     advancingRef.current = true;
     await advanceToNextTrack();
     refresh();
+  }
+
+  function onAudioPlay() {
+    if (audioRef.current) resumePlayback(audioRef.current.currentTime);
+  }
+  function onAudioPause() {
+    if (audioRef.current) pausePlayback(audioRef.current.currentTime);
+  }
+  function onAudioSeeked() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) pausePlayback(audio.currentTime);
+    else resumePlayback(audio.currentTime);
   }
 
   async function onGenerateCodes() {
@@ -91,13 +152,13 @@ export default function MasterDashboardPage() {
   async function onExportCsv() {
     const data = await exportAllData();
     const trackTitleById = new Map(data.tracks.map((t: any) => [t.id, t.title]));
-    const judgeNicknameById = new Map(data.judges.map((j: any) => [j.id, j.nickname ?? j.id.slice(0, 8)]));
-    const header = "traccia,giurato,voto_generale,riascolterebbe,note\n";
+    const listenerNameById = new Map(data.judges.map((j: any) => [j.id, j.nickname ?? j.id.slice(0, 8)]));
+    const header = "traccia,ascoltatore,voto_generale,riascolterebbe,note\n";
     const rows = data.votes
       .map((v: any) =>
         [
           csvEscape(trackTitleById.get(v.track_id) ?? v.track_id),
-          csvEscape(judgeNicknameById.get(v.judge_id) ?? v.judge_id),
+          csvEscape(listenerNameById.get(v.judge_id) ?? v.judge_id),
           v.general_score,
           v.would_relisten ? "si" : "no",
           csvEscape(v.notes ?? ""),
@@ -117,9 +178,9 @@ export default function MasterDashboardPage() {
   const currentTrack = snapshot.tracks.find((t) => t.id === snapshot.state?.current_track_id);
 
   return (
-    <main className="mx-auto max-w-4xl space-y-8 px-4 py-8">
+    <main className="enter mx-auto max-w-4xl space-y-6 px-4 py-8">
       <header className="flex items-center justify-between">
-        <h1 className="glow-text text-3xl font-black">Pannello Master</h1>
+        <h1 className="glow-text font-display text-3xl font-bold">Pannello Master</h1>
         <div className="flex gap-4 text-sm">
           <Link href="/master/tracks" className="text-cyan hover:underline">
             Gestisci tracce
@@ -131,7 +192,7 @@ export default function MasterDashboardPage() {
       </header>
 
       <section className="neon-card space-y-4 p-6">
-        <h2 className="text-lg font-bold">Stato sessione</h2>
+        <h2 className="font-display text-lg font-bold">Stato sessione</h2>
         <p className="text-white/70">
           Fase: <span className="font-semibold text-white">{snapshot.state?.phase}</span>
           {currentTrack && (
@@ -142,13 +203,27 @@ export default function MasterDashboardPage() {
           )}
         </p>
         <p className="text-white/70">
-          Voti ricevuti: {snapshot.currentTrackVotedCount} / {snapshot.activeCount} giurati attivi
+          Voti ricevuti: {snapshot.currentTrackVotedCount} / {snapshot.activeCount} ascoltatori attivi
         </p>
 
         {countdown !== null && (
           <div className="neon-card animate-pulseGlow border-acid/40 p-3 text-center text-acid">
             Tutti hanno votato! Prossima traccia tra {countdown}s
           </div>
+        )}
+
+        <audio
+          ref={audioRef}
+          controls
+          onPlay={onAudioPlay}
+          onPause={onAudioPause}
+          onSeeked={onAudioSeeked}
+          className={`w-full rounded-lg accent-cyan ${currentTrackId ? "" : "hidden"}`}
+        />
+        {currentTrackId && audioMissing && (
+          <p className="text-sm text-gold">
+            Nessun mp3 caricato per questa traccia — caricalo dalla pagina "Gestisci tracce".
+          </p>
         )}
 
         <div className="flex flex-wrap items-center gap-3">
@@ -167,70 +242,80 @@ export default function MasterDashboardPage() {
           <button onClick={onPlay} disabled={!selectedTrackId} className="btn-glow rounded-lg px-5 py-2">
             ▶ Avvia
           </button>
-          <button onClick={onAdvanceNow} disabled={!snapshot.state?.current_track_id} className="neon-card rounded-lg px-5 py-2 text-white/80">
+          <button
+            onClick={onAdvanceNow}
+            disabled={!snapshot.state?.current_track_id}
+            className="neon-card rounded-lg px-5 py-2 text-white/80"
+          >
             Avanza ora
           </button>
         </div>
       </section>
 
       <section className="neon-card space-y-3 p-6">
-        <h2 className="text-lg font-bold">Classifica live</h2>
-        <table className="w-full text-left text-sm">
-          <thead className="text-white/50">
-            <tr>
-              <th className="py-1">#</th>
-              <th>Traccia</th>
-              <th>Media</th>
-              <th>Voti</th>
-            </tr>
-          </thead>
-          <tbody>
-            {snapshot.ranking.map((r, i) => (
-              <tr key={r.id} className="border-t border-white/5">
-                <td className="py-1 text-white/40">{i + 1}</td>
-                <td>{r.title}</td>
-                <td className="glow-text font-bold">{r.average?.toFixed(2) ?? "—"}</td>
-                <td className="text-white/60">{r.votesCount}</td>
+        <h2 className="font-display text-lg font-bold">Classifica live</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="text-white/50">
+              <tr>
+                <th className="py-1">#</th>
+                <th>Traccia</th>
+                <th>Media</th>
+                <th>Voti</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {snapshot.ranking.map((r, i) => (
+                <tr key={r.id} className="border-t border-white/5">
+                  <td className="py-1 text-white/40">{i + 1}</td>
+                  <td>{r.title}</td>
+                  <td className="glow-text font-bold">{r.average?.toFixed(2) ?? "—"}</td>
+                  <td className="text-white/60">{r.votesCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="neon-card space-y-3 p-6">
-        <h2 className="text-lg font-bold">Giurati ({snapshot.judges.length})</h2>
-        <table className="w-full text-left text-sm">
-          <thead className="text-white/50">
-            <tr>
-              <th className="py-1">Nome</th>
-              <th>Stato</th>
-              <th>Codice rientro</th>
-            </tr>
-          </thead>
-          <tbody>
-            {snapshot.judges.map((j) => (
-              <tr key={j.id} className="border-t border-white/5">
-                <td className="py-1">{j.nickname ?? j.id.slice(0, 8)}</td>
-                <td>
-                  <span className={j.online ? "text-acid" : "text-white/30"}>{j.online ? "● online" : "○ offline"}</span>
-                </td>
-                <td>
-                  {regenerated[j.id] ? (
-                    <span className="glow-text font-mono font-bold">{regenerated[j.id]}</span>
-                  ) : (
-                    <button onClick={() => onRegenerate(j.id)} className="text-cyan hover:underline">
-                      Rigenera codice
-                    </button>
-                  )}
-                </td>
+        <h2 className="font-display text-lg font-bold">Ascoltatori ({snapshot.judges.length})</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="text-white/50">
+              <tr>
+                <th className="py-1">Nome</th>
+                <th>Stato</th>
+                <th>Codice rientro</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {snapshot.judges.map((j) => (
+                <tr key={j.id} className="border-t border-white/5">
+                  <td className="py-1">{j.nickname ?? j.id.slice(0, 8)}</td>
+                  <td>
+                    <span className={j.online ? "text-acid" : "text-white/30"}>
+                      {j.online ? "● online" : "○ offline"}
+                    </span>
+                  </td>
+                  <td>
+                    {regenerated[j.id] ? (
+                      <span className="glow-text font-mono font-bold">{regenerated[j.id]}</span>
+                    ) : (
+                      <button onClick={() => onRegenerate(j.id)} className="text-cyan hover:underline">
+                        Rigenera codice
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="neon-card space-y-4 p-6">
-        <h2 className="text-lg font-bold">Codici d'ingresso</h2>
+        <h2 className="font-display text-lg font-bold">Codici d'ingresso</h2>
         <div className="flex items-center gap-3">
           <input
             type="number"
@@ -271,7 +356,7 @@ export default function MasterDashboardPage() {
       </section>
 
       <section className="neon-card space-y-3 p-6">
-        <h2 className="text-lg font-bold">Export dati (per analisi IA)</h2>
+        <h2 className="font-display text-lg font-bold">Export dati (per analisi IA)</h2>
         <div className="flex gap-3">
           <button onClick={onExportJson} className="neon-card rounded-lg px-5 py-2 text-white/80">
             Esporta JSON completo
@@ -303,7 +388,7 @@ function downloadFile(filename: string, content: string, mime: string) {
 function CenteredMessage({ title }: { title: string }) {
   return (
     <main className="flex min-h-screen items-center justify-center">
-      <p className="glow-text text-xl">{title}</p>
+      <p className="glow-text font-display text-xl">{title}</p>
     </main>
   );
 }

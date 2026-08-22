@@ -5,34 +5,29 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        void: "#050508",
-        panel: "#0d0d14",
-        cyan: "#3ee8ff",
-        magenta: "#ff3ec8",
-        acid: "#a6ff3e",
+        void: "#07060d",
+        panel: "#0e0d18",
+        cyan: "#2de2e6",
+        magenta: "#ff3ea5",
+        acid: "#b4ff39",
         gold: "#ffd23e",
-        violet: "#9b3eff",
+        violet: "#7b2fff",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        sans: ["var(--font-body)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        glow: "0 0 20px rgba(62,232,255,0.45), 0 0 60px rgba(255,62,200,0.25)",
+        glow: "0 0 20px rgba(45,226,230,0.45), 0 0 60px rgba(255,62,165,0.25)",
       },
       keyframes: {
         pulseGlow: {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.6" },
         },
-        drift: {
-          "0%": { backgroundPosition: "0% 50%" },
-          "50%": { backgroundPosition: "100% 50%" },
-          "100%": { backgroundPosition: "0% 50%" },
-        },
       },
       animation: {
         pulseGlow: "pulseGlow 2.4s ease-in-out infinite",
-        drift: "drift 12s ease-in-out infinite",
       },
     },
   },

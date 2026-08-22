@@ -12,6 +12,8 @@ type SessionState = {
   current_track_id: string | null;
   phase: "lobby" | "voting" | "all_done";
   track_started_at: string | null;
+  is_paused: boolean;
+  paused_position_seconds: number | null;
 };
 
 type TrackData = Awaited<ReturnType<typeof getTrackForJudge>>;
@@ -96,8 +98,13 @@ export default function VoteSessionPage() {
     });
   }, [sessionState?.current_track_id]);
 
-  // Timer di riproduzione per lo scroll del testo sincronizzato.
+  // Timer di riproduzione per lo scroll del testo sincronizzato. Quando il
+  // Master mette in pausa l'audio, il testo si ferma sulla stessa posizione.
   useEffect(() => {
+    if (sessionState?.is_paused) {
+      setElapsed(sessionState.paused_position_seconds ?? 0);
+      return;
+    }
     if (!sessionState?.track_started_at) {
       setElapsed(0);
       return;
@@ -107,7 +114,7 @@ export default function VoteSessionPage() {
     tick();
     const interval = setInterval(tick, 250);
     return () => clearInterval(interval);
-  }, [sessionState?.track_started_at]);
+  }, [sessionState?.track_started_at, sessionState?.is_paused, sessionState?.paused_position_seconds]);
 
   const currentLineIndex = useMemo(() => {
     if (!trackData?.lines?.length) return -1;
@@ -180,10 +187,10 @@ export default function VoteSessionPage() {
   const hasVoted = trackData.hasVoted || justSubmitted;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-lg flex-col gap-6 px-4 py-6">
+    <main key={trackData.track.id} className="enter mx-auto flex min-h-screen max-w-lg flex-col gap-6 px-4 py-6">
       <header className="text-center">
-        <p className="text-xs uppercase tracking-widest text-cyan">Traccia in ascolto</p>
-        <h1 className="glow-text text-3xl font-black">{trackData.track.title}</h1>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan">Traccia in ascolto</p>
+        <h1 className="glow-text font-display text-3xl font-bold">{trackData.track.title}</h1>
         <p className="mt-2 text-sm text-white/60">
           {trackData.credits.map((c) => c.name).join(" · ")}
         </p>
@@ -193,6 +200,9 @@ export default function VoteSessionPage() {
         <div className="neon-card animate-pulseGlow border-acid/40 p-4 text-center text-acid">
           Tutti hanno votato! Si passa alla prossima traccia a breve.
         </div>
+      )}
+      {sessionState.is_paused && sessionState.phase === "voting" && (
+        <div className="neon-card border-gold/30 p-3 text-center text-sm text-gold">In pausa dallo studio…</div>
       )}
 
       {trackData.lines.length > 0 && (
@@ -216,9 +226,9 @@ export default function VoteSessionPage() {
       )}
 
       {hasVoted ? (
-        <div className="neon-card p-6 text-center">
-          <p className="text-lg font-semibold text-acid">Hai votato ✓</p>
-          <p className="mt-1 text-sm text-white/60">In attesa che tutti gli altri giurati finiscano di votare…</p>
+        <div className="enter neon-card p-6 text-center">
+          <p className="font-display text-lg font-semibold text-acid">Hai votato ✓</p>
+          <p className="mt-1 text-sm text-white/60">In attesa che gli altri ascoltatori finiscano di votare…</p>
         </div>
       ) : (
         <form onSubmit={onSubmit} className="neon-card space-y-6 p-6">
@@ -304,8 +314,8 @@ function CenteredMessage({
   children?: React.ReactNode;
 }) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
-      <h1 className="glow-text text-2xl font-bold">{title}</h1>
+    <main className="enter flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+      <h1 className="glow-text font-display text-2xl font-bold">{title}</h1>
       {subtitle && <p className="max-w-sm text-white/60">{subtitle}</p>}
       {children}
     </main>

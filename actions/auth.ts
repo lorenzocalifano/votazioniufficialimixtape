@@ -43,14 +43,14 @@ export async function redeemCode(rawCode: string, nickname: string | null) {
       .select("id")
       .single();
 
-    if (judgeError || !newJudge) return { error: "Impossibile creare la sessione giurato. Riprova." };
+    if (judgeError || !newJudge) return { error: "Impossibile creare la sessione ascoltatore. Riprova." };
     judgeId = newJudge.id;
   } else {
     // Rientro dopo disconnessione: stesso giurato, si aggiorna solo last_seen_at.
     await db.from("judges").update({ last_seen_at: new Date().toISOString() }).eq("id", judgeId);
   }
 
-  if (!judgeId) return { error: "Errore interno: giurato non identificato." };
+  if (!judgeId) return { error: "Errore interno: ascoltatore non identificato." };
 
   await db.from("access_codes").update({ used_at: new Date().toISOString() }).eq("id", codeRow.id);
 

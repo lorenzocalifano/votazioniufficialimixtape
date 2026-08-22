@@ -3,23 +3,23 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { requireMaster } from "@/lib/auth-helpers";
 
-// Un giurato è considerato "online" se ha mandato un heartbeat negli ultimi 45s
-// (heartbeat ogni ~15s dal client: tollera un po' di jitter di rete).
+// Un ascoltatore è considerato "online" se ha mandato un heartbeat negli
+// ultimi 45s (heartbeat ogni ~15s dal client: tollera un po' di jitter di rete).
 const ACTIVE_WINDOW_SECONDS = 45;
 
 function activeSinceIso(): string {
   return new Date(Date.now() - ACTIVE_WINDOW_SECONDS * 1000).toISOString();
 }
 
-/** Id dei giurati attualmente online, in base all'ultimo heartbeat ricevuto. */
+/** Id degli ascoltatori attualmente online, in base all'ultimo heartbeat ricevuto. */
 async function getActiveJudgeIds(db: ReturnType<typeof supabaseAdmin>): Promise<string[]> {
   const { data } = await db.from("judges").select("id").gte("last_seen_at", activeSinceIso());
   return (data ?? []).map((j) => j.id);
 }
 
 /**
- * Dopo ogni voto: se tutti i giurati attualmente online hanno votato la traccia
- * corrente, porta la fase a "all_done" (i client mostreranno il countdown).
+ * Dopo ogni voto: se tutti gli ascoltatori attualmente online hanno votato la
+ * traccia corrente, porta la fase a "all_done" (i client mostreranno il countdown).
  * L'update è condizionato su phase='voting' così scatta una volta sola.
  */
 export async function checkAndMaybeFinishVoting(trackId: string) {
@@ -43,7 +43,12 @@ export async function checkAndMaybeFinishVoting(trackId: string) {
   }
 }
 
-/** Master: imposta la traccia indicata come corrente e apre le votazioni. */
+/**
+ * Master: imposta la traccia indicata come corrente e apre le votazioni.
+ * track_started_at è l'"ancora" da cui i client calcolano la posizione del
+ * testo scorrevole (elapsed = now - track_started_at); dato che la traccia
+ * riparte sempre da 0, l'ancora coincide con l'istante corrente.
+ */
 export async function playTrack(trackId: string) {
   await requireMaster();
   const db = supabaseAdmin();
@@ -51,10 +56,55 @@ export async function playTrack(trackId: string) {
 
   const { error } = await db
     .from("session_state")
-    .update({ current_track_id: trackId, phase: "voting", track_started_at: now, updated_at: now })
+    .update({
+      current_track_id: trackId,
+      phase: "voting",
+      track_started_at: now,
+      is_paused: false,
+      paused_position_seconds: null,
+      updated_at: now,
+    })
     .eq("id", 1);
 
   if (error) return { error: "Impossibile avviare la traccia." };
+  return { ok: true };
+}
+
+/** Master: mette in pausa la riproduzione alla posizione indicata (secondi). */
+export async function pausePlayback(currentTimeSeconds: number) {
+  await requireMaster();
+  const db = supabaseAdmin();
+
+  const { error } = await db
+    .from("session_state")
+    .update({ is_paused: true, paused_position_seconds: currentTimeSeconds, updated_at: new Date().toISOString() })
+    .eq("id", 1);
+
+  if (error) return { error: "Impossibile mettere in pausa." };
+  return { ok: true };
+}
+
+/**
+ * Master: riprende la riproduzione dalla posizione indicata, ricalcolando
+ * l'ancora così che elapsed = now - track_started_at torni a coincidere con
+ * la posizione reale dell'audio.
+ */
+export async function resumePlayback(currentTimeSeconds: number) {
+  await requireMaster();
+  const db = supabaseAdmin();
+  const anchor = new Date(Date.now() - currentTimeSeconds * 1000).toISOString();
+
+  const { error } = await db
+    .from("session_state")
+    .update({
+      is_paused: false,
+      paused_position_seconds: null,
+      track_started_at: anchor,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", 1);
+
+  if (error) return { error: "Impossibile riprendere la riproduzione." };
   return { ok: true };
 }
 
@@ -86,12 +136,26 @@ export async function advanceToNextTrack() {
   if (nextTrack) {
     await db
       .from("session_state")
-      .update({ current_track_id: nextTrack.id, phase: "voting", track_started_at: now, updated_at: now })
+      .update({
+        current_track_id: nextTrack.id,
+        phase: "voting",
+        track_started_at: now,
+        is_paused: false,
+        paused_position_seconds: null,
+        updated_at: now,
+      })
       .eq("id", 1);
   } else {
     await db
       .from("session_state")
-      .update({ current_track_id: null, phase: "all_done", track_started_at: null, updated_at: now })
+      .update({
+        current_track_id: null,
+        phase: "all_done",
+        track_started_at: null,
+        is_paused: false,
+        paused_position_seconds: null,
+        updated_at: now,
+      })
       .eq("id", 1);
   }
 

@@ -10,7 +10,7 @@ export async function getJudgeId(): Promise<string | null> {
 
 export async function requireJudgeId(): Promise<string> {
   const judgeId = await getJudgeId();
-  if (!judgeId) throw new Error("Sessione giurato non valida o scaduta.");
+  if (!judgeId) throw new Error("Sessione ascoltatore non valida o scaduta.");
   return judgeId;
 }
 

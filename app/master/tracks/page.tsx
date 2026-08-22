@@ -46,9 +46,9 @@ export default function TracksListPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl space-y-6 px-4 py-8">
+    <main className="enter mx-auto max-w-2xl space-y-6 px-4 py-8">
       <header className="flex items-center justify-between">
-        <h1 className="glow-text text-3xl font-black">Roster tracce</h1>
+        <h1 className="glow-text font-display text-3xl font-bold">Roster tracce</h1>
         <Link href="/master/dashboard" className="text-cyan hover:underline">
           ← Dashboard
         </Link>

@@ -1,29 +1,32 @@
 # Mixtape Voting
 
-Sito per le votazioni live di un mixtape collettivo: i giurati votano da telefono
-mentre l'organizzatore guida la serata da un pannello Master, con dati reali e
-condivisi (non una demo statica) salvati su Supabase.
+Sito per le votazioni live di un mixtape collettivo: gli ascoltatori votano da
+telefono mentre l'organizzatore guida la serata da un pannello Master — audio
+compreso, riprodotto direttamente dal sito sulle casse dello studio — con dati
+reali e condivisi (non una demo statica) salvati su Supabase.
 
 ## Come funziona (in breve)
 
-- **Giurati**: entrano su `/vote/login` con un codice monouso comunicato la sera
-  stessa, votano la traccia corrente da telefono. Il testo scorre sincronizzato
-  in base ai timestamp preparati dall'organizzatore.
-- **Organizzatore (Master)**: da `/master/login` (password condivisa) gestisce
-  roster tracce, genera i codici d'accesso, avvia ogni traccia e vede in tempo
-  reale chi ha votato, la classifica live, ed esporta tutti i dati grezzi.
-- **Avanzamento automatico**: quando tutti i giurati attualmente online hanno
-  votato la traccia corrente, il sistema mostra un countdown e passa da solo
-  alla traccia successiva.
+- **Ascoltatori**: entrano su `/vote/login` con un codice monouso comunicato la
+  sera stessa, votano la traccia corrente da telefono mentre il testo scorre
+  sincronizzato con l'audio. Non sentono nulla dal proprio telefono: l'audio
+  parte solo dal computer del Master, sulle casse dello studio.
+- **Organizzatore (Master)**: da `/master/login` (password condivisa) carica i
+  brani (mp3 compreso), genera i codici d'accesso, avvia/mette in pausa ogni
+  traccia direttamente dal browser e vede in tempo reale chi ha votato, la
+  classifica live, ed esporta tutti i dati grezzi.
+- **Avanzamento automatico**: quando tutti gli ascoltatori attualmente online
+  hanno votato la traccia corrente, il sistema mostra un countdown e passa da
+  solo alla traccia successiva (audio compreso).
 
 ## Stack
 
 - **Next.js 16** (App Router, Server Actions) — frontend + backend in un solo progetto.
-- **Supabase** (Postgres + Realtime) — piano gratuito, database persistente condiviso da tutti i giurati.
+- **Supabase** (Postgres + Realtime + Storage) — piano gratuito: database persistente condiviso, e bucket privato per gli mp3.
 - **Vercel** (piano gratuito) — hosting.
 - Nessuna libreria di autenticazione: sessioni gestite con cookie httpOnly firmati (HMAC-SHA256, Web Crypto API).
 
-Costo totale: **€0/mese** nei limiti dei piani gratuiti (ampiamente sufficienti per un evento singolo con ~40 giurati).
+Costo totale: **€0/mese** nei limiti dei piani gratuiti (ampiamente sufficienti per un evento singolo con ~40 ascoltatori e ~20-30 tracce da qualche MB l'una).
 
 > **Nota**: Supabase mette in pausa i progetti free dopo 7 giorni di inattività
 > totale. Fai un accesso di prova qualche giorno prima dell'evento per tenerlo
@@ -32,10 +35,9 @@ Costo totale: **€0/mese** nei limiti dei piani gratuiti (ampiamente sufficient
 ## 1. Setup Supabase
 
 1. Crea un progetto su [supabase.com](https://supabase.com) (piano Free).
-2. Apri **SQL Editor** nel progetto, incolla il contenuto di
-   [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) ed esegui.
-   Questo crea tutte le tabelle, abilita Realtime su `session_state` e imposta
-   le policy di Row Level Security.
+2. Apri **SQL Editor** nel progetto ed esegui, **in ordine**, il contenuto di:
+   - [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) — tabelle, Realtime su `session_state`, Row Level Security.
+   - [`supabase/migrations/0002_audio_playback.sql`](supabase/migrations/0002_audio_playback.sql) — stato di pausa/ripresa e bucket privato `track-audio` per gli mp3.
 3. Vai in **Project Settings → API** e recupera:
    - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
    - `anon` / `publishable` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -66,31 +68,39 @@ npm run dev
 
 Apri [http://localhost:3000](http://localhost:3000).
 
-## 3. Prima di far entrare i giurati
+## 3. Prima di far entrare gli ascoltatori
 
 1. Login come Master (`/master/login`).
-2. Vai su **Gestisci tracce** e carica il roster: titolo, crediti
-   (producer/artisti), sezioni in ordine di strofa (ognuna con l'artista che
-   canta quella parte — sono l'unità sia dei voti granulari sia della
-   struttura del testo) e, se vuoi lo scroll sincronizzato, il testo con
-   l'editor "tocca a ritmo" (incolli le righe, ascolti il brano e tocchi un
-   pulsante a ogni riga: il sistema registra da solo i timestamp).
+2. Vai su **Gestisci tracce** e per ogni brano carica:
+   - titolo e crediti (producer/artisti);
+   - il file **mp3** (resta privato: si sente solo dal pannello Master, mai dal telefono degli ascoltatori);
+   - le sezioni in ordine di strofa (ognuna con l'artista che canta quella
+     parte — sono l'unità sia dei voti granulari sia della struttura del testo);
+   - se vuoi lo scroll sincronizzato, il testo con l'editor "tocca a ritmo":
+     l'mp3 caricato parte davvero, e ogni tap sul pulsante grande registra la
+     posizione esatta della canzone per quella riga — molto più precisa di un
+     timer generico perché è la stessa traccia che poi sentirete dal vivo.
 3. Torna alla dashboard e genera il primo batch di codici d'accesso (es. 45)
    da distribuire/proiettare in sala.
 
 ## 4. Durante la serata
 
-- I giurati inseriscono il codice su `/vote/login` (opzionale: il proprio nome
-  al primo accesso).
-- Quando sei pronto, scegli la prima traccia e premi **▶ Avvia**: parte
-  fisicamente l'audio in studio e sul telefono dei giurati compare la
-  schermata di voto con crediti/testo sincronizzato.
-- Quando tutti i giurati online hanno votato, parte in automatico il countdown
-  e si passa alla traccia successiva (puoi anche forzare con **Avanza ora**).
-- Se un giurato si disconnette, il suo vecchio codice non è più valido: nella
-  sezione **Giurati** della dashboard premi **Rigenera codice** accanto al suo
-  nome e comunicagli il nuovo codice per rientrare (riprende dalla traccia
-  corrente, non da dove si era fermato).
+- Gli ascoltatori inseriscono il codice su `/vote/login` (opzionale: il
+  proprio nome al primo accesso).
+- Quando sei pronto, scegli la prima traccia e premi **▶ Avvia**: l'mp3 parte
+  dal tuo browser sulle casse dello studio, e sul telefono degli ascoltatori
+  compare la schermata di voto con crediti/testo sincronizzato (loro non
+  sentono nulla dal proprio dispositivo).
+- Il player audio nella dashboard ha i controlli nativi del browser
+  (play/pausa/scorrimento/volume): usali pure per gestire la riproduzione, lo
+  stato si sincronizza da solo con i telefoni degli ascoltatori.
+- Quando tutti gli ascoltatori online hanno votato, parte in automatico il
+  countdown e si passa alla traccia successiva, audio compreso (puoi anche
+  forzare con **Avanza ora**).
+- Se un ascoltatore si disconnette, il suo vecchio codice non è più valido:
+  nella sezione **Ascoltatori** della dashboard premi **Rigenera codice**
+  accanto al suo nome e comunicagli il nuovo codice per rientrare (riprende
+  dalla traccia corrente, non da dove si era fermato).
 - A fine serata, dalla dashboard puoi esportare **JSON completo** o **CSV voti**
   per un'analisi successiva (anche con un'IA esterna).
 
@@ -98,9 +108,9 @@ Apri [http://localhost:3000](http://localhost:3000).
 
 Il voto è protetto **lato server**, non solo lato client:
 
-- vincolo `UNIQUE(judge_id, track_id)` nel database: un giurato non può votare
-  due volte la stessa traccia, anche riprovando;
-- l'identità del giurato vive in un cookie **httpOnly** firmato, non in
+- vincolo `UNIQUE(judge_id, track_id)` nel database: una persona non può
+  votare due volte la stessa traccia, anche riprovando;
+- l'identità dell'ascoltatore vive in un cookie **httpOnly** firmato, non in
   `localStorage`: non basta svuotare la cache per "resettarsi";
 - ogni codice è monouso e viene invalidato al primo utilizzo.
 
@@ -109,6 +119,12 @@ cookie di sessione su un altro dispositivo, o presta il telefono già loggato a
 un'altra persona, tecnicamente vota "come lui/lei". Per un contesto di fiducia
 come una serata tra collaboratori è una protezione adeguata; non è pensata per
 resistere a un utente tecnico e malintenzionato.
+
+**Limite sull'audio**: il testo scorrevole si sincronizza calcolando il tempo
+trascorso da quando l'mp3 è partito. Se il Master mette in pausa o riavvolge
+manualmente con i controlli nativi, lo stato si riallinea correttamente; una
+latenza di rete di qualche centinaio di millisecondi tra un'azione e la sua
+propagazione ai telefoni resta comunque possibile.
 
 ## Deploy su Vercel
 
@@ -119,17 +135,17 @@ resistere a un utente tecnico e malintenzionato.
    `SUPABASE_SERVICE_ROLE_KEY`, `MASTER_PASSWORD`, `SESSION_SECRET`.
 4. Deploy. Da quel momento il sito è raggiungibile pubblicamente sull'URL
    assegnato da Vercel (piano Hobby, gratuito).
-5. Fai un giro di test completo (login giurato, login master, avvio traccia,
-   voto, avanzamento) **prima** della serata vera.
+5. Fai un giro di test completo (login ascoltatore, login master, caricamento
+   mp3, avvio traccia, voto, avanzamento) **prima** della serata vera.
 
 ## Struttura del progetto
 
 ```
 app/
-  vote/login, vote/session      → app giurati (mobile-first)
+  vote/login, vote/session      → app ascoltatori (mobile-first)
   master/login, master/dashboard,
-  master/tracks                 → pannello organizzatore
+  master/tracks                 → pannello organizzatore (audio incluso)
 actions/                        → Server Actions: tutta la logica di scrittura/lettura
 lib/                             → client Supabase, firma cookie di sessione
-supabase/migrations/0001_init.sql → schema database completo
+supabase/migrations/            → schema database + bucket audio, in ordine
 ```
