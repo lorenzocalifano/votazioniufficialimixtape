@@ -26,9 +26,6 @@ export default function MasterLoginPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6">
-      <div className="cover-backdrop" aria-hidden="true">
-        <img src="/cover.jpg" alt="" />
-      </div>
       <form onSubmit={onSubmit} className="enter neon-card w-full max-w-sm space-y-5 p-8">
         <h1 className="glow-text font-display text-center text-2xl font-bold">Pannello organizzatore</h1>
         <input

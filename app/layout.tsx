@@ -18,7 +18,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="it" className={`${displayFont.variable} ${bodyFont.variable}`}>
       <body className="min-h-screen font-sans antialiased">
-        <div className="bg-burst" aria-hidden="true" />
+        <div className="cover-backdrop" aria-hidden="true">
+          <img src="/cover.jpg" alt="" />
+        </div>
         {children}
       </body>
     </html>
