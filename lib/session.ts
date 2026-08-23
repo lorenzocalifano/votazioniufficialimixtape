@@ -5,7 +5,7 @@
  */
 
 export type SessionPayload =
-  | { role: "judge"; judgeId: string; exp: number }
+  | { role: "judge"; judgeId: string; epoch: number; exp: number }
   | { role: "master"; exp: number };
 
 const encoder = new TextEncoder();

@@ -13,7 +13,7 @@ export async function saveTrackAudioUrl(trackId: string, url: string) {
   await requireMaster();
   const db = supabaseAdmin();
   const { error } = await db.from("tracks").update({ audio_url: url }).eq("id", trackId);
-  if (error) return { error: "Errore nel salvataggio dell'audio." };
+  if (error) return { error: "Errore nel salvataggio dell'audio: " + error.message };
   return { ok: true };
 }
 

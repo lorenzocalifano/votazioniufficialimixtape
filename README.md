@@ -46,6 +46,7 @@ Costo totale: **€0/mese** nei limiti dei piani gratuiti (ampiamente sufficient
    - [`supabase/migrations/0004_production_score.sql`](supabase/migrations/0004_production_score.sql) — voto separato alla produzione/beat.
    - [`supabase/migrations/0005_fix_track_delete.sql`](supabase/migrations/0005_fix_track_delete.sql) — fix per poter eliminare una traccia che sia mai stata quella corrente.
    - [`supabase/migrations/0006_vercel_blob_audio.sql`](supabase/migrations/0006_vercel_blob_audio.sql) — colonna per l'URL dell'mp3 su Vercel Blob.
+   - [`supabase/migrations/0007_disconnect_and_epoch.sql`](supabase/migrations/0007_disconnect_and_epoch.sql) — permette al Master di disconnettere forzatamente un ascoltatore.
 3. Vai in **Project Settings → API** e recupera:
    - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
    - `anon` / `publishable` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -127,10 +128,14 @@ Apri [http://localhost:3000](http://localhost:3000).
   successiva, audio compreso (puoi anche forzare con **Avanza ora**). Ogni 3
   tracce scatta in automatico una pausa di 5 minuti (15 dopo la decima): la
   dashboard mostra il countdown ed **avanza da sola** a fine pausa.
-- Se un ascoltatore si disconnette, il suo vecchio codice non è più valido:
-  nella sezione **Ascoltatori** della dashboard premi **Rigenera codice**
-  accanto al suo nome e comunicagli il nuovo codice per rientrare (riprende
-  dalla traccia corrente, non da dove si era fermato).
+- Se un ascoltatore si disconnette da solo, il suo vecchio codice non è più
+  valido: nella sezione **Ascoltatori** della dashboard premi **Rigenera
+  codice** accanto al suo nome e comunicagli il nuovo codice per rientrare
+  (riprende dalla traccia corrente, non da dove si era fermato). Per
+  interrompere tu una sessione (es. codice finito nelle mani sbagliate) usa
+  invece **Disconnetti**: da quel momento non può più votare finché non gli
+  generi un nuovo codice. La colonna **Ingresso** mostra quando ha effettuato
+  il primo accesso ("oggi", "ieri" o la data).
 - A fine serata, dalla dashboard puoi esportare i dati per un'analisi successiva
   (anche con un'IA esterna): **JSON completo** (tracce con crediti, sezioni e
   relativi voti individuali, voti generali (incluso il voto separato alla

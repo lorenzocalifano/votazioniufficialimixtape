@@ -38,6 +38,39 @@ export async function regenerateCodeForJudge(judgeId: string) {
   return { ok: true, code };
 }
 
+/**
+ * Disconnette forzatamente un ascoltatore: incrementa il suo session_epoch,
+ * invalidando all'istante il cookie che ha in mano (il prossimo heartbeat o
+ * caricamento traccia fallisce e viene rimandato al login). Il vecchio
+ * codice resta comunque inutilizzabile: per farlo rientrare serve
+ * "Rigenera codice".
+ */
+export async function disconnectJudge(judgeId: string) {
+  await requireMaster();
+  const db = supabaseAdmin();
+
+  const { data: judge } = await db.from("judges").select("session_epoch").eq("id", judgeId).single();
+  if (!judge) return { error: "Ascoltatore non trovato." };
+
+  const { error } = await db
+    .from("judges")
+    .update({ session_epoch: judge.session_epoch + 1, last_seen_at: null })
+    .eq("id", judgeId);
+
+  if (error) return { error: "Errore nella disconnessione." };
+  return { ok: true };
+}
+
+/** Cancella i codici generati ma mai distribuiti/usati (non tocca quelli già legati a un ascoltatore). */
+export async function clearAvailableCodes() {
+  await requireMaster();
+  const db = supabaseAdmin();
+
+  const { error } = await db.from("access_codes").delete().is("judge_id", null).is("used_at", null);
+  if (error) return { error: "Errore nella cancellazione dei codici." };
+  return { ok: true };
+}
+
 export async function getCodesOverview() {
   await requireMaster();
   const db = supabaseAdmin();

@@ -206,7 +206,7 @@ export async function getDashboardSnapshot() {
   const [{ data: state }, { data: tracks }, { data: judges }] = await Promise.all([
     db.from("session_state").select("*").eq("id", 1).single(),
     db.from("tracks").select("id, position, title, duration_seconds").order("position", { ascending: true }),
-    db.from("judges").select("id, nickname, last_seen_at").order("created_at", { ascending: true }),
+    db.from("judges").select("id, nickname, last_seen_at, created_at").order("created_at", { ascending: true }),
   ]);
 
   const activeSince = activeSinceIso();

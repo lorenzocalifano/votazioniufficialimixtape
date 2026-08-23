@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { signSession, JUDGE_COOKIE, MASTER_COOKIE, SESSION_TTL_SECONDS } from "@/lib/session";
-import { getJudgeId } from "@/lib/auth-helpers";
+import { getJudgeId, requireJudgeId } from "@/lib/auth-helpers";
 
 export async function getMyJudgeId() {
   return getJudgeId();
@@ -34,27 +34,36 @@ export async function redeemCode(rawCode: string, nickname: string | null) {
   if (!codeRow) return { error: "Codice non valido o già utilizzato. Chiedi all'organizzatore un nuovo codice." };
 
   let judgeId = codeRow.judge_id as string | null;
+  let epoch = 0;
 
   if (!judgeId) {
     // Primo utilizzo di questo codice: nasce un nuovo giurato.
     const { data: newJudge, error: judgeError } = await db
       .from("judges")
       .insert({ nickname: nickname?.trim() || null, last_seen_at: new Date().toISOString() })
-      .select("id")
+      .select("id, session_epoch")
       .single();
 
     if (judgeError || !newJudge) return { error: "Impossibile creare la sessione ascoltatore. Riprova." };
     judgeId = newJudge.id;
+    epoch = newJudge.session_epoch;
   } else {
-    // Rientro dopo disconnessione: stesso giurato, si aggiorna solo last_seen_at.
-    await db.from("judges").update({ last_seen_at: new Date().toISOString() }).eq("id", judgeId);
+    // Rientro dopo disconnessione (naturale o forzata dal Master): stesso
+    // giurato, si legge l'epoch corrente così il nuovo cookie torna valido.
+    const { data: existing } = await db
+      .from("judges")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("id", judgeId)
+      .select("session_epoch")
+      .single();
+    epoch = existing?.session_epoch ?? 0;
   }
 
   if (!judgeId) return { error: "Errore interno: ascoltatore non identificato." };
 
   await db.from("access_codes").update({ used_at: new Date().toISOString() }).eq("id", codeRow.id);
 
-  const token = await signSession({ role: "judge", judgeId, exp: expiry() });
+  const token = await signSession({ role: "judge", judgeId, epoch, exp: expiry() });
   (await cookies()).set(JUDGE_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -100,8 +109,13 @@ export async function logoutMaster() {
   (await cookies()).delete(MASTER_COOKIE);
 }
 
-/** Chiamato ogni ~15s dal client giurato per segnalarsi "online". */
-export async function heartbeat(judgeId: string) {
+/**
+ * Chiamato ogni ~15s dal client giurato per segnalarsi "online". Lancia se la
+ * sessione è stata revocata dal Master (disconnessione forzata): il client
+ * intercetta l'errore e riporta l'ascoltatore al login.
+ */
+export async function heartbeat() {
+  const judgeId = await requireJudgeId();
   const db = supabaseAdmin();
   await db.from("judges").update({ last_seen_at: new Date().toISOString() }).eq("id", judgeId);
 }

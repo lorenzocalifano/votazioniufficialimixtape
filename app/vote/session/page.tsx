@@ -55,12 +55,16 @@ export default function VoteSessionPage() {
     getScheduleTracks().then(setScheduleTracks);
   }, []);
 
-  // Heartbeat periodico: mantiene l'ascoltatore "online" per il conteggio votanti attivi.
+  // Heartbeat periodico: mantiene l'ascoltatore "online" per il conteggio
+  // votanti attivi. Se il Master ha disconnesso forzatamente la sessione,
+  // l'heartbeat fallisce e si torna al login.
   useEffect(() => {
     if (!judgeId) return;
-    heartbeat(judgeId);
-    const interval = setInterval(() => heartbeat(judgeId), HEARTBEAT_MS);
+    const ping = () => heartbeat().catch(() => router.push("/vote/login"));
+    ping();
+    const interval = setInterval(ping, HEARTBEAT_MS);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [judgeId]);
 
   // Stato sessione: realtime (istantaneo) + poll di sicurezza a bassa frequenza.
@@ -108,7 +112,8 @@ export default function VoteSessionPage() {
       setJustSubmitted(false);
       setShowConfirm(false);
       lastLineIndexRef.current = -1;
-    });
+    }).catch(() => router.push("/vote/login"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionState?.current_track_id]);
 
   // Timer di riproduzione per lo scroll del testo sincronizzato. Quando il
@@ -158,14 +163,20 @@ export default function VoteSessionPage() {
     setSubmitting(true);
     setSubmitError(null);
 
-    const result = await submitVote({
-      trackId: trackData.track.id,
-      generalScore,
-      productionScore,
-      wouldRelisten: wouldRelisten!,
-      notes,
-      sectionScores: Object.entries(sectionScores).map(([sectionId, score]) => ({ sectionId, score })),
-    });
+    let result;
+    try {
+      result = await submitVote({
+        trackId: trackData.track.id,
+        generalScore,
+        productionScore,
+        wouldRelisten: wouldRelisten!,
+        notes,
+        sectionScores: Object.entries(sectionScores).map(([sectionId, score]) => ({ sectionId, score })),
+      });
+    } catch {
+      router.push("/vote/login");
+      return;
+    }
 
     setSubmitting(false);
     if (result.error) {

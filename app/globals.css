@@ -68,7 +68,8 @@ body {
 .neon-card {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02) 45%, rgba(255, 255, 255, 0.09));
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.02) 45%, rgba(255, 255, 255, 0.08)),
+    rgba(7, 6, 13, 0.62);
   border: 1px solid rgba(255, 255, 255, 0.28);
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);

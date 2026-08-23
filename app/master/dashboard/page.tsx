@@ -11,11 +11,18 @@ import {
   resumePlayback,
   resetSessionToLobby,
 } from "@/actions/session-state";
-import { generateInitialCodes, regenerateCodeForJudge, getCodesOverview } from "@/actions/codes";
+import {
+  generateInitialCodes,
+  regenerateCodeForJudge,
+  getCodesOverview,
+  disconnectJudge,
+  clearAvailableCodes,
+} from "@/actions/codes";
 import { getTrackAudioUrl } from "@/actions/audio";
 import { exportAllData } from "@/actions/export";
 import { logoutMaster } from "@/actions/auth";
 import { estimateEndTime, formatClock } from "@/lib/schedule";
+import { formatRelativeDay } from "@/lib/format";
 
 type Snapshot = Awaited<ReturnType<typeof getDashboardSnapshot>>;
 type CodesOverview = Awaited<ReturnType<typeof getCodesOverview>>;
@@ -170,9 +177,21 @@ export default function MasterDashboardPage() {
     refresh();
   }
 
+  async function onClearAvailableCodes() {
+    if (!confirm("Cancellare tutti i codici generati ma mai distribuiti? Quelli già in mano a un ascoltatore restano intatti.")) return;
+    await clearAvailableCodes();
+    refresh();
+  }
+
   async function onRegenerate(judgeId: string) {
     const result = await regenerateCodeForJudge(judgeId);
     if (result.code) setRegenerated((prev) => ({ ...prev, [judgeId]: result.code! }));
+    refresh();
+  }
+
+  async function onDisconnect(judgeId: string) {
+    if (!confirm("Disconnettere questo ascoltatore? Non potrà più votare finché non gli generi un nuovo codice.")) return;
+    await disconnectJudge(judgeId);
     refresh();
   }
 
@@ -361,7 +380,9 @@ export default function MasterDashboardPage() {
               <tr>
                 <th className="py-1">Nome</th>
                 <th>Stato</th>
+                <th>Ingresso</th>
                 <th>Codice rientro</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -373,6 +394,7 @@ export default function MasterDashboardPage() {
                       {j.online ? "● online" : "○ offline"}
                     </span>
                   </td>
+                  <td className="text-white/50">{formatRelativeDay(j.created_at)}</td>
                   <td>
                     {regenerated[j.id] ? (
                       <span className="glow-text font-mono font-bold">{regenerated[j.id]}</span>
@@ -381,6 +403,11 @@ export default function MasterDashboardPage() {
                         Rigenera codice
                       </button>
                     )}
+                  </td>
+                  <td>
+                    <button onClick={() => onDisconnect(j.id)} className="text-magenta hover:underline">
+                      Disconnetti
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -403,6 +430,11 @@ export default function MasterDashboardPage() {
           <button onClick={onGenerateCodes} className="btn-glow rounded-2xl px-5 py-2">
             Genera codici iniziali
           </button>
+          {codes.available.length > 0 && (
+            <button onClick={onClearAvailableCodes} className="text-sm text-magenta hover:underline">
+              Cancella codici disponibili
+            </button>
+          )}
         </div>
         {codes.available.length > 0 && (
           <div>
