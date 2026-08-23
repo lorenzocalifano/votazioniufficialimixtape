@@ -12,8 +12,8 @@ import {
   saveLyricsLines,
   setTrackDuration,
 } from "@/actions/tracks";
-import { createAudioUploadTicket, getTrackAudioUrl, deleteTrackAudio } from "@/actions/audio";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { saveTrackAudioUrl, getTrackAudioUrl, deleteTrackAudio } from "@/actions/audio";
+import { upload } from "@vercel/blob/client";
 
 type Detail = Awaited<ReturnType<typeof getTrackDetail>>;
 
@@ -70,26 +70,23 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
     setError(null);
     setUploading(true);
 
-    // Il file va DIRETTAMENTE dal browser a Supabase Storage con un URL
-    // firmato: passando dal nostro server verrebbe bloccato dal limite di
-    // ~4.5MB per richiesta imposto da Vercel sulle funzioni serverless.
-    const ticket = await createAudioUploadTicket(trackId);
-    if (ticket.error || !ticket.path || !ticket.token) {
+    try {
+      // Il file va DIRETTAMENTE dal browser a Vercel Blob: passando dal
+      // nostro server verrebbe bloccato dal limite di ~4.5MB per richiesta
+      // delle funzioni serverless.
+      const blob = await upload(`${trackId}.mp3`, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+        contentType: file.type,
+      });
+      const result = await saveTrackAudioUrl(trackId, blob.url);
+      if (result.error) throw new Error(result.error);
+      refresh();
+    } catch (err) {
+      setError("Errore nel caricamento dell'audio: " + (err as Error).message);
+    } finally {
       setUploading(false);
-      setError(ticket.error ?? "Errore nella preparazione del caricamento.");
-      return;
     }
-
-    const { error } = await supabaseBrowser()
-      .storage.from("track-audio")
-      .uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: file.type });
-
-    setUploading(false);
-    if (error) {
-      setError("Errore nel caricamento dell'audio: " + error.message);
-      return;
-    }
-    refresh();
   }
 
   async function onDeleteAudio() {

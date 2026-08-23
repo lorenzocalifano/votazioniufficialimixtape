@@ -25,7 +25,8 @@ reali e condivisi (non una demo statica) salvati su Supabase.
 ## Stack
 
 - **Next.js 16** (App Router, Server Actions) — frontend + backend in un solo progetto.
-- **Supabase** (Postgres + Realtime + Storage) — piano gratuito: database persistente condiviso, e bucket privato per gli mp3.
+- **Supabase** (Postgres + Realtime) — piano gratuito: database persistente condiviso da tutti gli ascoltatori.
+- **Vercel Blob** (piano gratuito, 10GB inclusi) — storage per gli mp3, upload diretto dal browser senza limiti di dimensione pratici.
 - **Vercel** (piano gratuito) — hosting.
 - Nessuna libreria di autenticazione: sessioni gestite con cookie httpOnly firmati (HMAC-SHA256, Web Crypto API).
 
@@ -40,9 +41,11 @@ Costo totale: **€0/mese** nei limiti dei piani gratuiti (ampiamente sufficient
 1. Crea un progetto su [supabase.com](https://supabase.com) (piano Free).
 2. Apri **SQL Editor** nel progetto ed esegui, **in ordine**, il contenuto di:
    - [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) — tabelle, Realtime su `session_state`, Row Level Security.
-   - [`supabase/migrations/0002_audio_playback.sql`](supabase/migrations/0002_audio_playback.sql) — stato di pausa/ripresa e bucket privato `track-audio` per gli mp3.
+   - [`supabase/migrations/0002_audio_playback.sql`](supabase/migrations/0002_audio_playback.sql) — stato di pausa/ripresa (il bucket storage che crea non è più usato, vedi punto 2).
    - [`supabase/migrations/0003_breaks_and_schedule.sql`](supabase/migrations/0003_breaks_and_schedule.sql) — durata tracce e pause programmate.
    - [`supabase/migrations/0004_production_score.sql`](supabase/migrations/0004_production_score.sql) — voto separato alla produzione/beat.
+   - [`supabase/migrations/0005_fix_track_delete.sql`](supabase/migrations/0005_fix_track_delete.sql) — fix per poter eliminare una traccia che sia mai stata quella corrente.
+   - [`supabase/migrations/0006_vercel_blob_audio.sql`](supabase/migrations/0006_vercel_blob_audio.sql) — colonna per l'URL dell'mp3 su Vercel Blob.
 3. Vai in **Project Settings → API** e recupera:
    - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
    - `anon` / `publishable` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -50,16 +53,34 @@ Costo totale: **€0/mese** nei limiti dei piani gratuiti (ampiamente sufficient
      bypassa la sicurezza: non esporla mai al browser, va solo nel `.env.local` /
      nelle variabili d'ambiente del server, mai in codice committato).
 
-## 2. Setup locale
+## 2. Setup Vercel Blob (storage mp3)
+
+Il piano gratuito di Supabase Storage è limitato a 50MB per file (non
+alzabile), troppo poco per degli mp3 interi. Gli audio quindi vivono su
+**Vercel Blob**, che sul piano gratuito include 10GB e non ha un limite di
+dimensione realistico per un file audio.
+
+1. Sul progetto Vercel (anche prima del primo deploy, o dopo — è indipendente) vai sul tab **Storage** → **Create Database** → **Blob**.
+2. Una volta creato e collegato al progetto, Vercel aggiunge da solo la variabile `BLOB_READ_WRITE_TOKEN` all'ambiente di produzione.
+3. Per lo sviluppo locale, copia quel token da Vercel → Storage → il tuo store → **.env.local** tab, oppure lancia `vercel env pull .env.local` se hai la CLI collegata al progetto.
+
+> **Nota sulla privacy dei file**: i file caricati sono pubblici sull'URL
+> generato da Vercel Blob (un link lungo e non indovinabile, non elencato da
+> nessuna parte). Il sito non lo mostra mai agli ascoltatori — lo recupera
+> solo il pannello Master via una Server Action protetta — quindi nell'uso
+> normale nessuno lo vede. Non è però un segreto crittografico: chi
+> ottenesse quel link specifico potrebbe aprirlo direttamente.
+
+## 3. Setup locale
 
 ```bash
 npm install
 cp .env.example .env.local
 ```
 
-Compila `.env.local` con i valori di Supabase, una `MASTER_PASSWORD` a tua
-scelta (quella con cui accedi al pannello organizzatore) e un `SESSION_SECRET`
-casuale robusto:
+Compila `.env.local` con i valori di Supabase, il token di Vercel Blob, una
+`MASTER_PASSWORD` a tua scelta (quella con cui accedi al pannello
+organizzatore) e un `SESSION_SECRET` casuale robusto:
 
 ```bash
 openssl rand -base64 32
@@ -73,12 +94,12 @@ npm run dev
 
 Apri [http://localhost:3000](http://localhost:3000).
 
-## 3. Prima di far entrare gli ascoltatori
+## 4. Prima di far entrare gli ascoltatori
 
 1. Login come Master (`/master/login`).
 2. Vai su **Gestisci tracce** e per ogni brano carica:
    - titolo e crediti (producer/artisti);
-   - il file **mp3** (resta privato: si sente solo dal pannello Master, mai dal telefono degli ascoltatori);
+   - il file **mp3** (non viene mai mostrato agli ascoltatori: si sente solo dal pannello Master);
    - le sezioni in ordine di strofa (ognuna con l'artista che canta quella
      parte — sono l'unità sia dei voti granulari sia della struttura del testo);
    - se vuoi lo scroll sincronizzato, il testo con l'editor "tocca a ritmo":
@@ -88,7 +109,7 @@ Apri [http://localhost:3000](http://localhost:3000).
 3. Torna alla dashboard e genera il primo batch di codici d'accesso (es. 45)
    da distribuire/proiettare in sala.
 
-## 4. Durante la serata
+## 5. Durante la serata
 
 - Gli ascoltatori inseriscono il codice su `/vote/login` (opzionale: il
   proprio nome al primo accesso).
@@ -146,6 +167,9 @@ propagazione ai telefoni resta comunque possibile.
 3. In **Environment Variables** aggiungi le stesse variabili di `.env.local`:
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
    `SUPABASE_SERVICE_ROLE_KEY`, `MASTER_PASSWORD`, `SESSION_SECRET`.
+   `BLOB_READ_WRITE_TOKEN` invece si aggiunge da solo quando colleghi lo store
+   Blob al progetto (vedi punto 2 più sopra) — non serve incollarlo a mano se
+   lo crei direttamente da questo stesso progetto Vercel.
 4. Deploy. Da quel momento il sito è raggiungibile pubblicamente sull'URL
    assegnato da Vercel (piano Hobby, gratuito).
 5. Fai un giro di test completo (login ascoltatore, login master, caricamento
