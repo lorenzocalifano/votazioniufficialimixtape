@@ -30,7 +30,7 @@ export function ProgressScreen({
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan">{formatClock(now)}</p>
 
       <div>
-        <p className="font-display text-2xl font-bold">{statusTitle}</p>
+        <p className="text-2xl font-bold">{statusTitle}</p>
         {statusSubtitle && <p className="mt-1 text-sm text-white/60">{statusSubtitle}</p>}
       </div>
 

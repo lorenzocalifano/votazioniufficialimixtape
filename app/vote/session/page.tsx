@@ -239,7 +239,7 @@ export default function VoteSessionPage() {
     <main key={trackData.track.id} className="enter mx-auto flex min-h-screen max-w-lg flex-col gap-6 px-4 py-6">
       <header className="text-center">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan">Traccia in ascolto</p>
-        <h1 className="glow-text font-display text-3xl font-bold">{trackData.track.title}</h1>
+        <h1 className="glow-text text-3xl font-bold">{trackData.track.title}</h1>
         <p className="mt-2 text-sm text-white/60">{trackData.credits.map((c) => c.name).join(" · ")}</p>
       </header>
 
@@ -337,7 +337,7 @@ export default function VoteSessionPage() {
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
           <div className="enter neon-card w-full max-w-sm space-y-5 p-6 text-center">
-            <p className="font-display text-lg font-bold">Confermi il voto?</p>
+            <p className="text-lg font-bold">Confermi il voto?</p>
             <p className="text-sm text-white/60">Dopo la conferma non potrai più modificarlo per questa traccia.</p>
             <div className="flex gap-3">
               <button onClick={() => setShowConfirm(false)} className="neon-card flex-1 rounded-2xl py-2 text-white/80">
@@ -365,7 +365,7 @@ function CenteredMessage({
 }) {
   return (
     <main className="enter flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
-      <h1 className="glow-text font-display text-2xl font-bold">{title}</h1>
+      <h1 className="glow-text text-2xl font-bold">{title}</h1>
       {subtitle && <p className="max-w-sm text-white/60">{subtitle}</p>}
       {children}
     </main>

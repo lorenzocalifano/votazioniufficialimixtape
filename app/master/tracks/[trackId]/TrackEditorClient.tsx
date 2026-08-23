@@ -168,7 +168,7 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
   return (
     <main className="enter mx-auto max-w-3xl space-y-8 px-4 py-8">
       <header className="flex items-center justify-between">
-        <h1 className="glow-text font-display text-2xl font-bold">Modifica traccia</h1>
+        <h1 className="glow-text text-2xl font-bold">Modifica traccia</h1>
         <Link href="/master/tracks" className="text-cyan hover:underline">
           ← Roster
         </Link>
@@ -184,7 +184,7 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
       </section>
 
       <section className="neon-card space-y-4 p-6">
-        <h2 className="font-display text-lg font-bold">Audio (mp3)</h2>
+        <h2 className="text-lg font-bold">Audio (mp3)</h2>
         <p className="text-sm text-white/50">
           Il file resta privato: si riproduce solo dal pannello Master (sulle casse dello studio), mai sui telefoni
           degli ascoltatori.
@@ -213,7 +213,7 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
       </section>
 
       <section className="neon-card space-y-3 p-6">
-        <h2 className="font-display text-lg font-bold">Crediti (producer / artisti)</h2>
+        <h2 className="text-lg font-bold">Crediti (producer / artisti)</h2>
         <ul className="space-y-1">
           {detail.credits.map((c) => (
             <li key={c.id} className="flex items-center justify-between">
@@ -244,7 +244,7 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
       </section>
 
       <section className="neon-card space-y-3 p-6">
-        <h2 className="font-display text-lg font-bold">Sezioni (ordine di strofa, per i voti granulari)</h2>
+        <h2 className="text-lg font-bold">Sezioni (ordine di strofa, per i voti granulari)</h2>
         <ul className="space-y-1">
           {detail.sections.map((s) => (
             <li key={s.id} className="flex items-center justify-between">
@@ -277,7 +277,7 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
       </section>
 
       <section className="neon-card space-y-4 p-6">
-        <h2 className="font-display text-lg font-bold">Testo scorrevole sincronizzato</h2>
+        <h2 className="text-lg font-bold">Testo scorrevole sincronizzato</h2>
         <p className="text-sm text-white/50">
           Incolla il testo (una riga per riga), poi premi "Inizia sincronizzazione": l'mp3 caricato sopra parte
           davvero, e ogni tap sul pulsante grande registra la posizione esatta della traccia per quella riga.
@@ -306,7 +306,7 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
             <p className="text-sm text-white/50">
               Riga {syncIndex + 1} / {syncLines.length}
             </p>
-            <p className="glow-text font-display text-2xl font-bold">{syncLines[syncIndex]}</p>
+            <p className="glow-text text-2xl font-bold">{syncLines[syncIndex]}</p>
             <button onClick={tapNextLine} className="btn-glow w-full rounded-2xl py-6 text-xl">
               TOCCA per la prossima riga
             </button>

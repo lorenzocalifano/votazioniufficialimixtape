@@ -15,7 +15,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-body)", "system-ui", "sans-serif"],
-        display: ["var(--font-display)", "system-ui", "sans-serif"],
+        hero: ["var(--font-hero)", "system-ui", "sans-serif"],
       },
       boxShadow: {
         glow: "0 0 20px rgba(45,226,230,0.45), 0 0 60px rgba(255,62,165,0.25)",

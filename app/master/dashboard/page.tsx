@@ -222,7 +222,7 @@ export default function MasterDashboardPage() {
   return (
     <main className="enter mx-auto max-w-4xl space-y-6 px-4 py-8">
       <header className="flex items-center justify-between">
-        <h1 className="glow-text font-display text-3xl font-bold">Pannello Master</h1>
+        <h1 className="glow-text text-3xl font-bold">Pannello Master</h1>
         <div className="flex gap-4 text-sm">
           <Link href="/master/tracks" className="text-cyan hover:underline">
             Gestisci tracce
@@ -234,7 +234,7 @@ export default function MasterDashboardPage() {
       </header>
 
       <section className="neon-card space-y-4 p-6">
-        <h2 className="font-display text-lg font-bold">Stato sessione</h2>
+        <h2 className="text-lg font-bold">Stato sessione</h2>
         <div className="flex flex-wrap justify-between gap-2 text-sm text-white/50">
           <span>Ore {formatClock(now)}</span>
           {currentTrack && snapshot.tracks.length > 0 && (
@@ -312,7 +312,7 @@ export default function MasterDashboardPage() {
       </section>
 
       <section className="neon-card space-y-3 p-6">
-        <h2 className="font-display text-lg font-bold">Classifica live</h2>
+        <h2 className="text-lg font-bold">Classifica live</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="text-white/50">
@@ -338,7 +338,7 @@ export default function MasterDashboardPage() {
       </section>
 
       <section className="neon-card space-y-3 p-6">
-        <h2 className="font-display text-lg font-bold">Ascoltatori ({snapshot.judges.length})</h2>
+        <h2 className="text-lg font-bold">Ascoltatori ({snapshot.judges.length})</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="text-white/50">
@@ -374,7 +374,7 @@ export default function MasterDashboardPage() {
       </section>
 
       <section className="neon-card space-y-4 p-6">
-        <h2 className="font-display text-lg font-bold">Codici d'ingresso</h2>
+        <h2 className="text-lg font-bold">Codici d'ingresso</h2>
         <div className="flex items-center gap-3">
           <input
             type="number"
@@ -415,7 +415,7 @@ export default function MasterDashboardPage() {
       </section>
 
       <section className="neon-card space-y-3 p-6">
-        <h2 className="font-display text-lg font-bold">Export dati (per analisi IA)</h2>
+        <h2 className="text-lg font-bold">Export dati (per analisi IA)</h2>
         <div className="flex flex-wrap gap-3">
           <button onClick={onExportJson} className="neon-card rounded-2xl px-5 py-2 text-white/80">
             Esporta JSON completo
@@ -450,7 +450,7 @@ function downloadFile(filename: string, content: string, mime: string) {
 function CenteredMessage({ title }: { title: string }) {
   return (
     <main className="flex min-h-screen items-center justify-center">
-      <p className="glow-text font-display text-xl">{title}</p>
+      <p className="glow-text text-xl">{title}</p>
     </main>
   );
 }
