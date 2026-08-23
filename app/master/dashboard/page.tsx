@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import QRCode from "qrcode";
 import {
   getDashboardSnapshot,
   playTrack,
@@ -39,6 +40,8 @@ export default function MasterDashboardPage() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [audioMissing, setAudioMissing] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [showQr, setShowQr] = useState(false);
   const advancingRef = useRef(false);
   const snapshotRef = useRef<Snapshot | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -242,6 +245,13 @@ export default function MasterDashboardPage() {
     router.push("/master/login");
   }
 
+  async function onShowQr() {
+    const loginUrl = `${window.location.origin}/vote/login`;
+    const dataUrl = await QRCode.toDataURL(loginUrl, { width: 480, margin: 2 });
+    setQrDataUrl(dataUrl);
+    setShowQr(true);
+  }
+
   if (!snapshot || !codes) return <CenteredMessage title="Caricamento…" />;
 
   const currentTrack = snapshot.tracks.find((t) => t.id === snapshot.state?.current_track_id);
@@ -255,7 +265,10 @@ export default function MasterDashboardPage() {
     <main className="enter mx-auto max-w-4xl space-y-6 px-4 py-8">
       <header className="flex items-center justify-between">
         <h1 className="glow-text text-3xl font-bold">Pannello Master</h1>
-        <div className="flex gap-4 text-sm">
+        <div className="flex items-center gap-4 text-sm">
+          <button onClick={onShowQr} className="btn-glow rounded-2xl px-4 py-2">
+            Mostra QR
+          </button>
           <Link href="/master/tracks" className="text-cyan hover:underline">
             Gestisci tracce
           </Link>
@@ -264,6 +277,21 @@ export default function MasterDashboardPage() {
           </button>
         </div>
       </header>
+
+      {showQr && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6">
+          <div className="enter neon-card w-full max-w-sm space-y-5 p-8 text-center">
+            <p className="text-lg font-bold">Inquadra per votare</p>
+            {qrDataUrl && (
+              <img src={qrDataUrl} alt="QR per la pagina di accesso ascoltatori" className="mx-auto rounded-2xl bg-white p-3" />
+            )}
+            <p className="break-all text-sm text-white/50">{`${typeof window !== "undefined" ? window.location.origin : ""}/vote/login`}</p>
+            <button onClick={() => setShowQr(false)} className="neon-card w-full rounded-2xl py-2 text-white/80">
+              Chiudi
+            </button>
+          </div>
+        </div>
+      )}
 
       <section className="neon-card space-y-4 p-6">
         <h2 className="text-lg font-bold">Stato sessione</h2>
