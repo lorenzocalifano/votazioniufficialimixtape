@@ -3,7 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getDashboardSnapshot, playTrack, advanceToNextTrack, pausePlayback, resumePlayback } from "@/actions/session-state";
+import {
+  getDashboardSnapshot,
+  playTrack,
+  advanceToNextTrack,
+  pausePlayback,
+  resumePlayback,
+  resetSessionToLobby,
+} from "@/actions/session-state";
 import { generateInitialCodes, regenerateCodeForJudge, getCodesOverview } from "@/actions/codes";
 import { getTrackAudioUrl } from "@/actions/audio";
 import { exportAllData } from "@/actions/export";
@@ -136,6 +143,12 @@ export default function MasterDashboardPage() {
   async function onAdvanceNow() {
     advancingRef.current = true;
     await advanceToNextTrack();
+    refresh();
+  }
+
+  async function onResetSession() {
+    if (!confirm("Riportare la sessione alla lobby? I voti già registrati NON vengono cancellati.")) return;
+    await resetSessionToLobby();
     refresh();
   }
 
@@ -307,6 +320,9 @@ export default function MasterDashboardPage() {
             className="neon-card rounded-2xl px-5 py-2 text-white/80"
           >
             Avanza ora
+          </button>
+          <button onClick={onResetSession} className="text-sm text-white/40 hover:text-white/70">
+            Reset sessione (lobby)
           </button>
         </div>
       </section>

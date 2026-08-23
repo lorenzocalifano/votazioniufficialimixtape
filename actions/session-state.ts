@@ -51,6 +51,33 @@ export async function checkAndMaybeFinishVoting(trackId: string) {
 }
 
 /**
+ * Master: riporta la sessione alla lobby (nessuna traccia corrente, in attesa
+ * di avvio). Non tocca i voti già registrati né i codici/ascoltatori: serve
+ * per "sbloccare" chi entra e si vede dire "serata conclusa" dopo un test,
+ * non per azzerare i dati.
+ */
+export async function resetSessionToLobby() {
+  await requireMaster();
+  const db = supabaseAdmin();
+
+  const { error } = await db
+    .from("session_state")
+    .update({
+      current_track_id: null,
+      phase: "lobby",
+      track_started_at: null,
+      is_paused: false,
+      paused_position_seconds: null,
+      break_until: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", 1);
+
+  if (error) return { error: "Impossibile resettare la sessione." };
+  return { ok: true };
+}
+
+/**
  * Master: imposta la traccia indicata come corrente e apre le votazioni.
  * track_started_at è l'"ancora" da cui i client calcolano la posizione del
  * testo scorrevole (elapsed = now - track_started_at); dato che la traccia
