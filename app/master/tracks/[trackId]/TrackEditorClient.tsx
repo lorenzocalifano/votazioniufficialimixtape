@@ -162,6 +162,28 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
     audioRef.current.play();
   }
 
+  function formatTimestamp(seconds: number) {
+    const m = Math.floor(seconds / 60);
+    const s = (seconds % 60).toFixed(2).padStart(5, "0");
+    return `${m}:${s}`;
+  }
+
+  function onExportLyrics() {
+    if (!detail?.lines.length) return;
+    const body = detail.lines
+      .map((l) => `${formatTimestamp(Number(l.timestamp_seconds))}  ${l.text}`)
+      .join("\n");
+    const content = `${title}\n${"=".repeat(title.length)}\n\n${body}\n`;
+
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "") || "testo"}-sincronizzato.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function cancelSync() {
     setSyncing(false);
     setSyncIndex(0);
@@ -357,11 +379,16 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
 
         {!syncing && !syncResult && detail.lines.length > 0 && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm text-white/50">Testo attualmente salvato:</p>
-              <button onClick={replayFromStart} disabled={!audioUrl} className="btn-glow rounded-2xl px-4 py-1.5 text-sm">
-                ▶ Riascolta come lo vedranno gli ascoltatori
-              </button>
+              <div className="flex gap-2">
+                <button onClick={onExportLyrics} className="neon-card rounded-2xl px-4 py-1.5 text-sm text-white/80">
+                  ⭳ Esporta testo con timestamp
+                </button>
+                <button onClick={replayFromStart} disabled={!audioUrl} className="btn-glow rounded-2xl px-4 py-1.5 text-sm">
+                  ▶ Riascolta come lo vedranno gli ascoltatori
+                </button>
+              </div>
             </div>
             <LyricsScroller lines={detail.lines} elapsed={previewElapsed} />
           </div>

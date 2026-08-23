@@ -10,6 +10,7 @@ export function LyricsScroller({
   lines: { text: string; timestamp_seconds: number }[];
   elapsed: number;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<Record<number, HTMLParagraphElement | null>>({});
   const lastLineIndexRef = useRef(-1);
 
@@ -23,16 +24,24 @@ export function LyricsScroller({
   }, [lines, elapsed]);
 
   useEffect(() => {
-    if (currentLineIndex !== lastLineIndexRef.current && currentLineIndex >= 0) {
-      lastLineIndexRef.current = currentLineIndex;
-      lineRefs.current[currentLineIndex]?.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (currentLineIndex === lastLineIndexRef.current || currentLineIndex < 0) return;
+    lastLineIndexRef.current = currentLineIndex;
+
+    // Scrolla solo il riquadro del testo, mai la pagina intorno: scrollIntoView
+    // risalirebbe anche i contenitori esterni (es. tutta la pagina di modifica
+    // traccia), facendo saltare la vista in modo fastidioso.
+    const container = containerRef.current;
+    const line = lineRefs.current[currentLineIndex];
+    if (container && line) {
+      const target = line.offsetTop - container.clientHeight / 2 + line.clientHeight / 2;
+      container.scrollTo({ top: target, behavior: "smooth" });
     }
   }, [currentLineIndex]);
 
   if (lines.length === 0) return null;
 
   return (
-    <div className="neon-card max-h-64 overflow-y-auto p-4">
+    <div ref={containerRef} className="neon-card max-h-64 overflow-y-auto p-4">
       {lines.map((line, i) => (
         <p
           key={i}
