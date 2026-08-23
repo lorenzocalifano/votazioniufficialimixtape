@@ -14,6 +14,7 @@ import {
 } from "@/actions/tracks";
 import { saveTrackAudioUrl, getTrackAudioUrl, deleteTrackAudio } from "@/actions/audio";
 import { upload } from "@vercel/blob/client";
+import { LyricsScroller } from "@/components/LyricsScroller";
 
 type Detail = Awaited<ReturnType<typeof getTrackDetail>>;
 
@@ -24,6 +25,7 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
 
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [previewElapsed, setPreviewElapsed] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const [creditRole, setCreditRole] = useState<"producer" | "artist">("producer");
@@ -145,6 +147,12 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
     }
   }
 
+  function replayFromStart() {
+    if (!audioRef.current) return;
+    audioRef.current.currentTime = 0;
+    audioRef.current.play();
+  }
+
   function cancelSync() {
     setSyncing(false);
     setSyncIndex(0);
@@ -194,6 +202,7 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
             const duration = e.currentTarget.duration;
             if (Number.isFinite(duration)) setTrackDuration(trackId, duration);
           }}
+          onTimeUpdate={(e) => setPreviewElapsed(e.currentTarget.currentTime)}
           className="w-full rounded-2xl accent-cyan"
         />
         <div className="flex items-center gap-3">
@@ -336,16 +345,14 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
         )}
 
         {!syncing && !syncResult && detail.lines.length > 0 && (
-          <div>
-            <p className="mb-1 text-sm text-white/50">Testo attualmente salvato:</p>
-            <ul className="max-h-48 space-y-1 overflow-y-auto text-sm text-white/70">
-              {detail.lines.map((l) => (
-                <li key={l.position} className="flex justify-between border-b border-white/5 py-1">
-                  <span>{l.text}</span>
-                  <span className="text-cyan">{Number(l.timestamp_seconds).toFixed(2)}s</span>
-                </li>
-              ))}
-            </ul>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-white/50">Testo attualmente salvato:</p>
+              <button onClick={replayFromStart} disabled={!audioUrl} className="btn-glow rounded-2xl px-4 py-1.5 text-sm">
+                ▶ Riascolta come lo vedranno gli ascoltatori
+              </button>
+            </div>
+            <LyricsScroller lines={detail.lines} elapsed={previewElapsed} />
           </div>
         )}
       </section>

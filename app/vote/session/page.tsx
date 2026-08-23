@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { getMyJudgeId, heartbeat, logoutJudge } from "@/actions/auth";
@@ -8,6 +8,7 @@ import { getSessionState, getTrackForJudge, getScheduleTracks } from "@/actions/
 import { submitVote } from "@/actions/votes";
 import { ScoreSlider } from "@/components/ScoreSlider";
 import { ProgressScreen } from "@/components/ProgressScreen";
+import { LyricsScroller } from "@/components/LyricsScroller";
 import { formatClock, ScheduleTrack } from "@/lib/schedule";
 
 type SessionState = {
@@ -41,9 +42,6 @@ export default function VoteSessionPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [justSubmitted, setJustSubmitted] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-
-  const lineRefs = useRef<Record<number, HTMLParagraphElement | null>>({});
-  const lastLineIndexRef = useRef(-1);
 
   // Identità ascoltatore (dal cookie httpOnly, non leggibile lato client se non via server action).
   useEffect(() => {
@@ -111,7 +109,6 @@ export default function VoteSessionPage() {
       setSectionScores(defaults);
       setJustSubmitted(false);
       setShowConfirm(false);
-      lastLineIndexRef.current = -1;
     }).catch(() => router.push("/vote/login"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionState?.current_track_id]);
@@ -133,23 +130,6 @@ export default function VoteSessionPage() {
     const interval = setInterval(tick, 250);
     return () => clearInterval(interval);
   }, [sessionState?.track_started_at, sessionState?.is_paused, sessionState?.paused_position_seconds]);
-
-  const currentLineIndex = useMemo(() => {
-    if (!trackData?.lines?.length) return -1;
-    let idx = -1;
-    for (let i = 0; i < trackData.lines.length; i++) {
-      if (trackData.lines[i].timestamp_seconds <= elapsed) idx = i;
-      else break;
-    }
-    return idx;
-  }, [trackData?.lines, elapsed]);
-
-  useEffect(() => {
-    if (currentLineIndex !== lastLineIndexRef.current && currentLineIndex >= 0) {
-      lastLineIndexRef.current = currentLineIndex;
-      lineRefs.current[currentLineIndex]?.scrollIntoView({ block: "center", behavior: "smooth" });
-    }
-  }, [currentLineIndex]);
 
   function onRequestVote(e: React.FormEvent) {
     e.preventDefault();
@@ -254,25 +234,7 @@ export default function VoteSessionPage() {
         <p className="mt-2 text-sm text-white/60">{trackData.credits.map((c) => c.name).join(" · ")}</p>
       </header>
 
-      {trackData.lines.length > 0 && (
-        <div className="neon-card max-h-64 overflow-y-auto p-4">
-          {trackData.lines.map((line, i) => (
-            <p
-              key={i}
-              ref={(el) => {
-                lineRefs.current[i] = el;
-              }}
-              className={
-                i === currentLineIndex
-                  ? "glow-text py-1 text-lg font-bold text-white transition-colors"
-                  : "py-1 text-white/40 transition-colors"
-              }
-            >
-              {line.text}
-            </p>
-          ))}
-        </div>
-      )}
+      <LyricsScroller lines={trackData.lines} elapsed={elapsed} />
 
       <form onSubmit={onRequestVote} className="neon-card space-y-6 p-6">
         <ScoreSlider label="Voto generale" value={generalScore} onChange={setGeneralScore} />
