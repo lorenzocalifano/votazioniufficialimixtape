@@ -74,7 +74,7 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
       // Il file va DIRETTAMENTE dal browser a Vercel Blob: passando dal
       // nostro server verrebbe bloccato dal limite di ~4.5MB per richiesta
       // delle funzioni serverless.
-      const blob = await upload(`${trackId}.mp3`, file, {
+      const blob = await upload(`${trackId}-${Date.now()}.mp3`, file, {
         access: "public",
         handleUploadUrl: "/api/upload",
         contentType: file.type,
