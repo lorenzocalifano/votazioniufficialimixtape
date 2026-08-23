@@ -127,23 +127,32 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
       .filter((l) => l.length > 0);
     if (lines.length === 0 || !audioRef.current) return;
     setSyncLines(lines);
-    setSyncIndex(0);
     setSyncResult(null);
-    capturedRef.current = [];
+    // La prima riga parte sempre esattamente all'inizio (0:00): non richiede
+    // un tap, altrimenti il primo tap finirebbe assegnato a lei invece che
+    // alla riga successiva, sfalsando tutto il resto di una posizione.
+    capturedRef.current = [0];
     audioRef.current.currentTime = 0;
     audioRef.current.play();
+
+    if (lines.length === 1) {
+      setSyncResult([{ text: lines[0], timestampSeconds: 0 }]);
+      setSyncing(false);
+      return;
+    }
+    setSyncIndex(1);
     setSyncing(true);
   }
 
   function tapNextLine() {
     const elapsed = audioRef.current?.currentTime ?? 0;
     capturedRef.current.push(elapsed);
-    if (syncIndex + 1 >= syncLines.length) {
+    if (capturedRef.current.length >= syncLines.length) {
       setSyncing(false);
       audioRef.current?.pause();
       setSyncResult(syncLines.map((text, i) => ({ text, timestampSeconds: Number(capturedRef.current[i].toFixed(2)) })));
     } else {
-      setSyncIndex((i) => i + 1);
+      setSyncIndex(capturedRef.current.length);
     }
   }
 
@@ -286,7 +295,9 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
         <h2 className="text-lg font-bold">Testo scorrevole sincronizzato</h2>
         <p className="text-sm text-white/50">
           Incolla il testo (una riga per riga), poi premi "Inizia sincronizzazione": l'mp3 caricato sopra parte
-          davvero, e ogni tap sul pulsante grande registra la posizione esatta della traccia per quella riga.
+          davvero dall'inizio (la prima riga si considera sempre a 0:00, non serve toccare nulla per lei). Per ogni
+          riga successiva, tocca il pulsante grande nell'esatto istante in cui SENTI iniziare la riga mostrata a
+          schermo.
         </p>
 
         {!audioUrl && <p className="text-sm text-gold">Carica prima l'mp3 qui sopra per poter sincronizzare il testo.</p>}
@@ -314,7 +325,7 @@ export default function TrackEditorClient({ trackId }: { trackId: string }) {
             </p>
             <p className="glow-text text-2xl font-bold">{syncLines[syncIndex]}</p>
             <button onClick={tapNextLine} className="btn-glow w-full rounded-2xl py-6 text-xl">
-              TOCCA per la prossima riga
+              TOCCA quando parte questa riga
             </button>
             <button onClick={cancelSync} className="text-sm text-white/40 hover:text-white/70">
               Annulla
